@@ -348,6 +348,42 @@
   }
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.error { background: var(--danger); color: white; }
+
+  /* ─── Loading Spinner ────────────────────────────────── */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .loading-overlay.show { display: flex; }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 212, 170, 0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .loading-text {
+    position: absolute;
+    margin-top: 80px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -675,6 +711,12 @@
 
 <!-- ═══ Toast ═══ -->
 <div class="toast" id="toast"></div>
+
+<!-- ═══ Loading Spinner ═══ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Loading...</div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════
@@ -1188,14 +1230,17 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "scan-results") {
+    hideLoading();
     renderAuditResults(msg.results);
   }
 
   if (msg.type === "export-results") {
+    hideLoading();
     downloadJSON(msg.results);
   }
 
   if (msg.type === "screen-frames-results") {
+    hideLoading();
     renderScreenFrames(msg.results);
   }
 
@@ -1537,8 +1582,21 @@ document.getElementById("save-btn").addEventListener("click", () => {
   };
 
   currentData = data;
+  
+  // Show brief loading state
+  const saveBtn = document.getElementById("save-btn");
+  const originalText = saveBtn.innerHTML;
+  saveBtn.innerHTML = "💾 Saving...";
+  saveBtn.disabled = true;
+  
   parent.postMessage({ pluginMessage: { type: "save", data, oldData } }, "*");
   updateCodeTab();
+  
+  // Reset button after a moment
+  setTimeout(() => {
+    saveBtn.innerHTML = originalText;
+    saveBtn.disabled = false;
+  }, 1000);
 });
 
 // Clear
@@ -1550,12 +1608,20 @@ document.getElementById("clear-btn").addEventListener("click", () => {
 
 // Scan tags
 document.getElementById("scan-btn").addEventListener("click", () => {
+  showLoading("Scanning page for tagged components...");
   parent.postMessage({ pluginMessage: { type: "scan-page" } }, "*");
+  
+  // Hide loading after results come back (will be handled by message handler)
+  setTimeout(() => hideLoading(), 3000);
 });
 
 // Scan screen frames
 document.getElementById("scan-screens-btn").addEventListener("click", () => {
+  showLoading("Scanning page for screen frames...");
   parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+  
+  // Hide loading after results come back (will be handled by message handler)
+  setTimeout(() => hideLoading(), 3000);
 });
 
 // Export
@@ -1581,7 +1647,20 @@ document.getElementById("set-screen-frame-btn").addEventListener("click", () => 
     showToast("Please select a screen name", true);
     return;
   }
+  
+  // Show brief loading state
+  const btn = document.getElementById("set-screen-frame-btn");
+  const originalText = btn.innerHTML;
+  btn.innerHTML = "⏳ Setting...";
+  btn.disabled = true;
+  
   parent.postMessage({ pluginMessage: { type: "set-screen-frame", screenName } }, "*");
+  
+  // Reset button after a moment
+  setTimeout(() => {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }, 1000);
 });
 
 // Clear screen frame
@@ -1687,7 +1766,7 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
   }
   
   if (!silent) {
-    showToast("Syncing to Google Sheets...");
+    showLoading("Syncing to Google Sheets...");
   }
   
   try {
@@ -1706,6 +1785,7 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
     if (!result.success) throw new Error(result.error || "Failed to sync");
     
     if (!silent) {
+      hideLoading();
       showToast(`✅ Synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets!`);
     } else {
       console.log(`Auto-synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets`);
@@ -1713,6 +1793,7 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
     
   } catch (err) {
     if (!silent) {
+      hideLoading();
       showToast("Failed to sync: " + err.message, true);
     } else {
       console.error("Auto-sync failed:", err);
@@ -1735,6 +1816,18 @@ function showToast(msg, isError) {
   t.className = "toast" + (isError ? " error" : "");
   setTimeout(() => t.classList.add("show"), 10);
   setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+function showLoading(text = "Loading...") {
+  const overlay = document.getElementById("loading-overlay");
+  const loadingText = document.getElementById("loading-text");
+  loadingText.textContent = text;
+  overlay.classList.add("show");
+}
+
+function hideLoading() {
+  const overlay = document.getElementById("loading-overlay");
+  overlay.classList.remove("show");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1823,6 +1916,8 @@ async function loadFileKeyFromStorage() {
 async function loadTaxonomyFromAPI() {
   if (!apiUrl) return;
   
+  showLoading("Loading taxonomy from Google Sheets...");
+  
   const statusEl = document.getElementById("api-status");
   statusEl.style.display = "block";
   statusEl.style.background = "var(--accent-dim)";
@@ -1894,9 +1989,11 @@ async function loadTaxonomyFromAPI() {
     statusEl.textContent = "✅ Taxonomy loaded successfully!";
     setTimeout(() => { statusEl.style.display = "none"; }, 3000);
     
+    hideLoading();
     showToast("Taxonomy loaded from Google Sheets!");
     
   } catch (err) {
+    hideLoading();
     statusEl.style.background = "var(--danger-dim)";
     statusEl.style.color = "var(--danger)";
     statusEl.textContent = "❌ Failed to load: " + err.message;
@@ -2020,6 +2117,8 @@ async function deleteCustomEntry(type, name) {
   
   if (!confirm(`Delete custom ${type}: "${name}"?`)) return;
   
+  showLoading(`Deleting custom ${type}...`);
+  
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -2035,8 +2134,10 @@ async function deleteCustomEntry(type, name) {
     
     showToast(`Custom ${type} deleted`);
     await loadTaxonomyFromAPI();
+    hideLoading();
     
   } catch (err) {
+    hideLoading();
     showToast("Failed to delete: " + err.message, true);
   }
 }
@@ -2158,6 +2259,8 @@ async function saveCustomScreen() {
     return;
   }
   
+  showLoading("Saving custom screen...");
+  
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -2189,7 +2292,10 @@ async function saveCustomScreen() {
     updateTaxonomyStatus();
     updateCustomEntriesList();
     
+    hideLoading();
+    
   } catch (err) {
+    hideLoading();
     showToast("Failed to save: " + err.message, true);
   }
 }
@@ -2216,6 +2322,8 @@ async function saveCustomEvent() {
     showToast("Please configure API URL in Settings first", true);
     return;
   }
+  
+  showLoading("Saving custom event...");
   
   try {
     const response = await fetch(apiUrl, {
@@ -2262,7 +2370,10 @@ async function saveCustomEvent() {
     updateTaxonomyStatus();
     updateCustomEntriesList();
     
+    hideLoading();
+    
   } catch (err) {
+    hideLoading();
     showToast("Failed to save: " + err.message, true);
   }
 }
