@@ -1239,7 +1239,9 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "sync-data") {
-    await syncTagsToSheet(msg.tags, msg.fileName, msg.fileKey, msg.screenFrames);
+    // Silent mode if this was triggered by auto-sync
+    const isAutoSync = msg.isAutoSync || false;
+    await syncTagsToSheet(msg.tags, msg.fileName, msg.fileKey, msg.screenFrames, isAutoSync);
   }
 
   if (msg.type === "log-change") {
@@ -1289,6 +1291,25 @@ window.onmessage = async (event) => {
       currentDiv.style.display = "none";
       clearBtn.style.display = "none";
     }
+  }
+
+  if (msg.type === "trigger-auto-sync") {
+    // Debounce auto-sync to avoid too many rapid syncs
+    // Wait 2 seconds after the last change before syncing
+    if (autoSyncTimeout) {
+      clearTimeout(autoSyncTimeout);
+    }
+    
+    autoSyncTimeout = setTimeout(async () => {
+      if (!apiUrl) {
+        console.log("Auto-sync skipped: No API URL configured");
+        return;
+      }
+      
+      console.log("Auto-syncing to Google Sheets...");
+      // Request all tags and screen frames from Figma (marked as auto-sync)
+      parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
+    }, 2000);
   }
 };
 
@@ -1657,13 +1678,17 @@ async function logChange(changeAction, nodeId, nodeName, field, oldValue, newVal
   }
 }
 
-async function syncTagsToSheet(tags, fileName, fileKey, screenFrames) {
+async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = false) {
   if (!apiUrl) {
-    showToast("Please configure API URL in Settings first", true);
+    if (!silent) {
+      showToast("Please configure API URL in Settings first", true);
+    }
     return;
   }
   
-  showToast("Syncing to Google Sheets...");
+  if (!silent) {
+    showToast("Syncing to Google Sheets...");
+  }
   
   try {
     const response = await fetch(apiUrl, {
@@ -1680,10 +1705,18 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames) {
     const result = await response.json();
     if (!result.success) throw new Error(result.error || "Failed to sync");
     
-    showToast(`✅ Synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets!`);
+    if (!silent) {
+      showToast(`✅ Synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets!`);
+    } else {
+      console.log(`Auto-synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets`);
+    }
     
   } catch (err) {
-    showToast("Failed to sync: " + err.message, true);
+    if (!silent) {
+      showToast("Failed to sync: " + err.message, true);
+    } else {
+      console.error("Auto-sync failed:", err);
+    }
   }
 }
 
@@ -1712,6 +1745,7 @@ let apiUrl = null;
 let taxonomyData = null;
 let figmaFileKey = null;
 let customScreensList = []; // Track which screens are custom
+let autoSyncTimeout = null; // Debounce timer for auto-sync
 
 // Save Figma file URL and extract fileKey
 document.getElementById("save-figma-url-btn").addEventListener("click", () => {

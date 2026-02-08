@@ -119,7 +119,10 @@ figma.ui.onmessage = (msg) => {
       oldValue: oldData ? JSON.stringify(oldData) : "",
       newValue: JSON.stringify(msg.data)
     });
-    
+
+    // Trigger auto-sync to backup changes
+    figma.ui.postMessage({ type: "trigger-auto-sync" });
+
     sendSelectionState();
   }
 
@@ -142,6 +145,9 @@ figma.ui.onmessage = (msg) => {
         newValue: ""
       });
     }
+    
+    // Trigger auto-sync to backup changes
+    figma.ui.postMessage({ type: "trigger-auto-sync" });
     
     sendSelectionState();
   }
@@ -245,6 +251,10 @@ figma.ui.onmessage = (msg) => {
     }
     node.setPluginData(SCREEN_FRAME_KEY, msg.screenName);
     figma.notify("✅ Screen frame set: \"" + node.name + "\" → " + msg.screenName);
+    
+    // Trigger auto-sync to backup screen assignments
+    figma.ui.postMessage({ type: "trigger-auto-sync" });
+    
     sendSelectionState();
   }
 
@@ -254,6 +264,10 @@ figma.ui.onmessage = (msg) => {
     const node = sel[0];
     node.setPluginData(SCREEN_FRAME_KEY, "");
     figma.notify("🗑️ Screen frame cleared from \"" + node.name + "\"");
+    
+    // Trigger auto-sync to backup screen assignments
+    figma.ui.postMessage({ type: "trigger-auto-sync" });
+    
     sendSelectionState();
   }
 
@@ -300,6 +314,7 @@ figma.ui.onmessage = (msg) => {
     // Gather all tags and screen frames, send to UI for syncing
     const results = [];
     const screenFrames = [];
+    const isAutoSync = msg.isAutoSync || false;
     
     function walkExport(node) {
       // Check if this is a screen frame
@@ -340,7 +355,7 @@ figma.ui.onmessage = (msg) => {
     
     // Get stored fileKey from clientStorage (since figma.fileKey is unavailable in plugin context)
     figma.clientStorage.getAsync("figmaFileKey").then((storedFileKey) => {
-      if (!storedFileKey) {
+      if (!storedFileKey && !isAutoSync) {
         figma.notify("⚠️ Please configure your Figma file URL in Settings to enable deep links", { timeout: 4000 });
       }
       
@@ -349,7 +364,8 @@ figma.ui.onmessage = (msg) => {
         tags: results,
         screenFrames: screenFrames,
         fileName: figma.root.name,
-        fileKey: storedFileKey || ""
+        fileKey: storedFileKey || "",
+        isAutoSync: isAutoSync
       });
     });
   }
