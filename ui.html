@@ -543,25 +543,25 @@
 
   <div id="code-view" style="display:none;">
     <div class="status-bar">
-      <div class="status-text"><strong>React Native snippet</strong> — paste onto your component</div>
+      <div class="status-text"><strong>React Native + Segment</strong></div>
     </div>
 
     <div style="margin-bottom:8px;">
-      <label>Analytics Props (spread onto component)</label>
+      <label>analytics.track() Call</label>
       <div class="code-block" id="code-rn-props">
         <button class="copy-btn" id="copy-rn-props">COPY</button>
       </div>
     </div>
 
     <div style="margin-bottom:8px;">
-      <label>Full Segment Payload (for reference)</label>
+      <label>Segment Event Payload</label>
       <div class="code-block" id="code-segment">
         <button class="copy-btn" id="copy-segment">COPY</button>
       </div>
     </div>
 
     <div>
-      <label>Usage Example</label>
+      <label>Full Usage Example (Pressable)</label>
       <div class="code-block" id="code-usage">
         <button class="copy-btn" id="copy-usage">COPY</button>
       </div>
@@ -1049,41 +1049,65 @@ function showSuggestedProps(eventName) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function generateRNProps(data) {
-  const lines = [];
-  lines.push(`analyticsEvent="${data.event}"`);
-  lines.push(`analyticsScreen="${data.screen_name}"`);
+  // Segment analytics.track() call
+  const props = {
+    screen_name: data.screen_name,
+    category: data.category || "",
+  };
+  // Add custom properties with their types as comments
   if (data.properties && Object.keys(data.properties).length > 0) {
-    lines.push(`analyticsProps={${JSON.stringify(data.properties)}}`);
+    Object.entries(data.properties).forEach(([key, type]) => {
+      props[key] = `<${type}>`;
+    });
   }
-  return lines.join("\n");
+  const propsLines = Object.entries(props)
+    .map(([k, v]) => `  ${k}: ${v.startsWith("<") ? v : `"${v}"`}`)
+    .join(",\n");
+  return `analytics.track("${data.event}", {\n${propsLines}\n});`;
 }
 
 function generateSegmentPayload(data) {
+  const properties = {
+    screen_name: data.screen_name,
+    category: data.category || "",
+  };
+  if (data.properties && Object.keys(data.properties).length > 0) {
+    Object.entries(data.properties).forEach(([key, type]) => {
+      properties[key] = `<${type}>`;
+    });
+  }
   const payload = {
     type: "track",
     event: data.event,
-    properties: {
-      screen_name: data.screen_name,
-      platform: "mobile_ios | mobile_android",
-      app_version: "{{app_version}}",
-      session_id: "{{session_id}}",
-      ...(data.properties || {}),
+    properties: properties,
+    context: {
+      screen: { name: data.screen_name },
     },
   };
-  return JSON.stringify(payload, null, 2);
+  return JSON.stringify(payload, null, 2).replace(/"<(\w+)>"/g, "<$1>");
 }
 
 function generateUsageExample(data) {
-  const propsStr = data.properties && Object.keys(data.properties).length > 0
-    ? `\n          analyticsProps={${JSON.stringify(data.properties)}}`
+  const propEntries = data.properties && Object.keys(data.properties).length > 0
+    ? Object.entries(data.properties)
+    : [];
+  const propsComment = propEntries.length > 0
+    ? "\n    // Properties: " + propEntries.map(([k, t]) => `${k} (${t})`).join(", ")
     : "";
-  return `<Touchable
-          analyticsEvent="${data.event}"
-          analyticsScreen="${data.screen_name}"${propsStr}
-          onPress={handlePress}
-        >
-          {/* ${data.description || data.event} */}
-        </Touchable>`;
+  const propsObj = propEntries.length > 0
+    ? ",\n      " + propEntries.map(([k, t]) => `${k}: ${t === "boolean" ? "true" : t === "integer" ? "0" : `"value"`}`).join(",\n      ")
+    : "";
+  return `// ${data.description || data.event}${propsComment}
+const handlePress = () => {
+  analytics.track("${data.event}", {
+    screen_name: "${data.screen_name}",
+    category: "${data.category || ""}"${propsObj}
+  });
+};
+
+<Pressable onPress={handlePress}>
+  {/* ${data.description || data.event} */}
+</Pressable>`;
 }
 
 function updateCodeTab() {
