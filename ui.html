@@ -558,14 +558,30 @@
     🖼️ Screen Frames
   </div>
   
-  <!-- Screen Frame Assignment -->
+  <!-- Inside Screen Frame Notice (shown when selection is inside an assigned screen) -->
+  <div id="screen-frame-inside-notice" style="display:none;margin-bottom:16px;">
+    <div class="props-section" style="background:rgba(99,179,237,0.1);border-color:rgba(99,179,237,0.3);">
+      <div style="text-align:center;padding:8px 0;">
+        <div style="font-size:20px;margin-bottom:6px;">📍</div>
+        <div style="font-size:12px;color:var(--text);font-weight:600;">Inside Screen Frame</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+          This component inherits screen: <strong id="inside-screen-name" style="color:var(--cat-core);font-family:monospace;"></strong>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">
+          from frame "<span id="inside-frame-name"></span>"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen Frame Assignment (hidden when inside a screen frame) -->
   <div id="screen-frame-assignment-main" style="margin-bottom:16px;">
     <div class="props-section" style="background:rgba(104,211,145,0.1);border-color:rgba(104,211,145,0.3);">
       <div class="props-header">
         <label style="margin:0;">Set Screen on Selected Frame</label>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-        Select a frame in Figma, then assign it a screen name. All components inside will auto-derive this screen name.
+        Select a top-level frame in Figma to assign it a screen name. Components inside will auto-inherit it.
       </div>
       <div id="screen-frame-current" style="display:none;padding:8px;background:rgba(104,211,145,0.15);border-radius:var(--radius-sm);margin-bottom:8px;">
         <div style="font-size:11px;color:var(--text);">
@@ -1085,6 +1101,9 @@ window.onmessage = async (event) => {
       document.getElementById("empty-state").style.display = "";
       document.getElementById("multi-state").style.display = "none";
       document.getElementById("tag-form").style.display = "none";
+      // Reset screens tab
+      document.getElementById("screen-frame-inside-notice").style.display = "none";
+      document.getElementById("screen-frame-assignment-main").style.display = "block";
     } else {
       currentNode = msg.node;
       currentData = msg.data;
@@ -1260,10 +1279,25 @@ window.onmessage = async (event) => {
 
 function updateScreensTabForSelection(node) {
   const isFrame = node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET";
+  const assignmentDiv = document.getElementById("screen-frame-assignment-main");
+  const insideNotice = document.getElementById("screen-frame-inside-notice");
   
-  if (isFrame) {
-    // Check if this frame has a screen assignment
+  // Check if this node is INSIDE an existing screen frame
+  if (currentScreenFrame) {
+    // Node is inside a screen frame — show notice, hide assignment controls
+    insideNotice.style.display = "block";
+    assignmentDiv.style.display = "none";
+    document.getElementById("inside-screen-name").textContent = currentScreenFrame.screenName;
+    document.getElementById("inside-frame-name").textContent = currentScreenFrame.name;
+  } else if (isFrame) {
+    // Top-level frame — show assignment controls, hide notice
+    insideNotice.style.display = "none";
+    assignmentDiv.style.display = "block";
     parent.postMessage({ pluginMessage: { type: "get-screen-assignment", nodeId: node.id } }, "*");
+  } else {
+    // Not a frame and not inside a screen — show assignment with hint
+    insideNotice.style.display = "none";
+    assignmentDiv.style.display = "block";
   }
 };
 
