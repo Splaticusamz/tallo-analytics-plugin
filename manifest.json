@@ -1,0 +1,24 @@
+{
+  "name": "Tallo Analytics Tagger",
+  "id": "tallo-analytics-tagger",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": ["inspect"],
+  "enableProposedApi": false,
+  "editorType": ["figma", "dev"],
+  "ui": "ui.html",
+  "relaunchButtons": [
+    {
+      "command": "open",
+      "name": "View Analytics Tag",
+      "multipleSelection": false
+    }
+  ],
+  "permissions": [],
+  "networkAccess": {
+    "allowedDomains": [
+      "script.google.com",
+      "script.googleusercontent.com"
+    ]
+  }
+}

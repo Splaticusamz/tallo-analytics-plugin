@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  /* ─── Reset & Base ──────────────────────────────────── */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-input: #0f3460;
+    --border: #1a3a6a;
+    --text: #e2e8f0;
+    --text-muted: #8899b4;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0, 212, 170, 0.15);
+    --danger: #f56565;
+    --danger-dim: rgba(245, 101, 101, 0.15);
+    --cat-lifecycle: #f6ad55;
+    --cat-core: #63b3ed;
+    --cat-form: #b794f4;
+    --cat-social: #fc8181;
+    --cat-nav: #68d391;
+    --cat-notif: #f6e05e;
+    --cat-profile: #ed64a6;
+    --cat-settings: #4fd1c5;
+    --cat-community: #feb2b2;
+    --cat-auth: #c4b5fd;
+    --cat-system: #a0aec0;
+    --radius: 8px;
+    --radius-sm: 5px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* ─── Tabs ──────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .tab-content { display: none; padding: 12px; }
+  .tab-content.active { display: block; }
+
+  /* ─── Empty / Status States ─────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+  .empty-state h3 { color: var(--text); font-size: 14px; margin-bottom: 4px; }
+  .empty-state p { font-size: 11px; }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .status-dot.empty { background: var(--text-muted); }
+  .status-dot.tagged { background: var(--accent); }
+  .status-text { font-size: 11px; color: var(--text-muted); flex: 1; }
+  .status-text strong { color: var(--text); }
+
+  /* ─── Form Elements ─────────────────────────────────── */
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  select, input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  select { cursor: pointer; }
+
+  .field { margin-bottom: 12px; }
+
+  /* ─── Category Badge ────────────────────────────────── */
+  .cat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── Properties Editor ─────────────────────────────── */
+  .props-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+  .props-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .props-header label { margin-bottom: 0; }
+
+  .prop-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .prop-row input { flex: 1; padding: 6px 8px; font-size: 11px; }
+  .prop-row select { width: 80px; flex: none; padding: 6px 4px; font-size: 11px; }
+  .prop-remove {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--danger-dim);
+    border: 1px solid rgba(245,101,101,0.3);
+    border-radius: var(--radius-sm);
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .prop-remove:hover { background: rgba(245,101,101,0.3); }
+
+  .add-prop-btn {
+    width: 100%;
+    padding: 6px;
+    background: var(--accent-dim);
+    border: 1px dashed rgba(0,212,170,0.4);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .add-prop-btn:hover { background: rgba(0,212,170,0.25); }
+
+  /* Suggested props chips */
+  .suggested-props {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .suggested-chip {
+    padding: 3px 8px;
+    background: rgba(99,179,237,0.15);
+    border: 1px solid rgba(99,179,237,0.3);
+    border-radius: 10px;
+    color: #63b3ed;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .suggested-chip:hover { background: rgba(99,179,237,0.3); }
+  .suggested-chip.added {
+    background: var(--accent-dim);
+    border-color: rgba(0,212,170,0.3);
+    color: var(--accent);
+  }
+
+  /* ─── Buttons ───────────────────────────────────────── */
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+
+  .btn {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a1a;
+  }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-secondary {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: var(--danger-dim);
+    border: 1px solid rgba(245,101,101,0.3);
+    color: var(--danger);
+  }
+  .btn-danger:hover { background: rgba(245,101,101,0.3); }
+  .btn-sm { padding: 6px 10px; font-size: 11px; }
+
+  /* ─── Code Preview ──────────────────────────────────── */
+  .code-block {
+    position: relative;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    color: #c9d1d9;
+    margin-top: 8px;
+  }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .fn { color: #d2a8ff; }
+  .code-block .cmt { color: #8b949e; }
+  .code-block .num { color: #79c0ff; }
+  .code-block .prop { color: #ffa657; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    background: var(--accent);
+    color: #0a0a1a;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { filter: brightness(1.2); }
+  .copy-btn.copied { background: #68d391; }
+
+  /* ─── Audit List ────────────────────────────────────── */
+  .audit-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .audit-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .audit-info { flex: 1; min-width: 0; }
+  .audit-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .audit-event { font-size: 11px; color: var(--accent); font-family: monospace; }
+  .audit-screen { font-size: 10px; color: var(--text-muted); }
+  .audit-count {
+    padding: 8px 12px;
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+  }
+  .audit-count .number { font-size: 24px; font-weight: 700; color: var(--accent); }
+
+  /* ─── Description tooltip ───────────────────────────── */
+  .event-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  /* ─── Toast ─────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    padding: 10px 14px;
+    background: var(--accent);
+    color: #0a0a1a;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 12px;
+    text-align: center;
+    z-index: 100;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--danger); color: white; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Tabs ═══ -->
+<div class="tabs">
+  <div class="tab active" data-tab="tag">🏷️ Tag</div>
+  <div class="tab" data-tab="code">📋 Code</div>
+  <div class="tab" data-tab="audit">📊 Audit</div>
+  <div class="tab" data-tab="settings">⚙️ Settings</div>
+</div>
+
+<!-- ═══ TAG TAB ═══ -->
+<div id="tab-tag" class="tab-content active">
+  <!-- No selection state -->
+  <div id="empty-state" class="empty-state">
+    <div class="icon">🎯</div>
+    <h3>Select a component</h3>
+    <p>Click any layer in Figma to attach analytics metadata.</p>
+  </div>
+
+  <!-- Multi-selection state -->
+  <div id="multi-state" class="empty-state" style="display:none;">
+    <div class="icon">📦</div>
+    <h3>Multiple layers selected</h3>
+    <p>Select a single component to tag it.</p>
+  </div>
+
+  <!-- Tag form -->
+  <div id="tag-form" style="display:none;">
+    <!-- Screen Frame Assignment (for frames only) -->
+    <div id="screen-frame-assignment" style="display:none;margin-bottom:12px;">
+      <div class="props-section" style="background:rgba(104,211,145,0.1);border-color:rgba(104,211,145,0.3);">
+        <div class="props-header">
+          <label style="margin:0;">🖼️ Screen Frame</label>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+          Mark this frame as a screen. Components inside will auto-derive their screen name.
+        </div>
+        <div id="screen-frame-current" style="display:none;padding:8px;background:rgba(104,211,145,0.15);border-radius:var(--radius-sm);margin-bottom:8px;">
+          <div style="font-size:11px;color:var(--text);">
+            <strong>Current:</strong> <span id="screen-frame-current-name" style="color:var(--cat-nav);font-family:monospace;"></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:flex-end;">
+          <div style="flex:1;">
+            <input type="text" id="screen-frame-input" placeholder="e.g. home__main" style="font-size:11px;" />
+          </div>
+          <button class="btn btn-secondary btn-sm" id="set-screen-frame-btn" style="flex:none;">Set Screen</button>
+          <button class="btn btn-danger btn-sm" id="clear-screen-frame-btn" style="flex:none;display:none;">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Frame Info (for components inside screens) -->
+    <div id="screen-frame-info" style="display:none;margin-bottom:12px;">
+      <div style="padding:8px;background:rgba(104,211,145,0.1);border:1px solid rgba(104,211,145,0.3);border-radius:var(--radius);font-size:11px;">
+        <div style="color:var(--text-muted);margin-bottom:2px;">📍 Inside screen frame:</div>
+        <div style="color:var(--cat-nav);font-weight:600;font-family:monospace;" id="current-screen-frame-name"></div>
+        <div style="color:var(--text-muted);font-size:10px;margin-top:2px;" id="current-screen-frame-layer"></div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-text" id="status-text"></div>
+    </div>
+
+    <div class="field">
+      <label>Screen Name</label>
+      <div style="display:flex;gap:4px;">
+        <select id="screen-select" style="flex:1;">
+          <option value="">— Select screen —</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="add-custom-screen-btn" style="flex:none;width:32px;padding:4px;" title="Add custom screen">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Event Category</label>
+      <select id="category-select">
+        <option value="">— All categories —</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Event</label>
+      <div style="display:flex;gap:4px;">
+        <select id="event-select" style="flex:1;">
+          <option value="">— Select event —</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="add-custom-event-btn" style="flex:none;width:32px;padding:4px;" title="Add custom event">+</button>
+      </div>
+      <div id="event-desc" class="event-desc" style="display:none;"></div>
+    </div>
+
+    <div class="field">
+      <label>Element Description <span style="color:var(--text-muted);font-weight:400;text-transform:none;">(what is this component?)</span></label>
+      <input type="text" id="description-input" placeholder='e.g. "Like button on feed post card"' />
+    </div>
+
+    <div class="props-section">
+      <div class="props-header">
+        <label style="margin:0;">Event Properties</label>
+        <span style="font-size:10px;color:var(--text-muted);" id="props-hint">Auto-populated from taxonomy</span>
+      </div>
+      <div id="suggested-props" class="suggested-props" style="display:none;"></div>
+      <div id="props-list"></div>
+      <button class="add-prop-btn" id="add-prop-btn">+ Add property</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="save-btn">💾 Save Tag</button>
+      <button class="btn btn-danger btn-sm" id="clear-btn" style="flex:none;width:80px;">Clear</button>
+    </div>
+    
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="btn btn-secondary btn-sm" id="copy-tag-btn">📋 Copy Tag</button>
+      <button class="btn btn-secondary btn-sm" id="paste-tag-btn">📥 Paste Tag</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CODE TAB ═══ -->
+<div id="tab-code" class="tab-content">
+  <div id="code-empty" class="empty-state">
+    <div class="icon">📋</div>
+    <h3>No tag on this component</h3>
+    <p>Tag a component first, then view the code here.</p>
+  </div>
+
+  <div id="code-view" style="display:none;">
+    <div class="status-bar">
+      <div class="status-text"><strong>React Native snippet</strong> — paste onto your component</div>
+    </div>
+
+    <div style="margin-bottom:8px;">
+      <label>Analytics Props (spread onto component)</label>
+      <div class="code-block" id="code-rn-props">
+        <button class="copy-btn" id="copy-rn-props">COPY</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:8px;">
+      <label>Full Segment Payload (for reference)</label>
+      <div class="code-block" id="code-segment">
+        <button class="copy-btn" id="copy-segment">COPY</button>
+      </div>
+    </div>
+
+    <div>
+      <label>Usage Example</label>
+      <div class="code-block" id="code-usage">
+        <button class="copy-btn" id="copy-usage">COPY</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AUDIT TAB ═══ -->
+<div id="tab-audit" class="tab-content">
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-secondary btn-sm" id="scan-btn" style="flex:1;">🔍 Scan Tags</button>
+    <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="flex:1;">🖼️ Screens</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-secondary btn-sm" id="export-btn" style="flex:1;">📥 Export JSON</button>
+    <button class="btn btn-primary btn-sm" id="sync-sheet-btn" style="flex:1;">☁️ Sync to Sheet</button>
+  </div>
+  <div class="audit-count" id="audit-count" style="display:none;">
+    <div class="number" id="audit-number">0</div>
+    <div style="font-size:10px;color:var(--text-muted);">tagged components</div>
+  </div>
+  <div id="audit-list"></div>
+  <div id="audit-empty" class="empty-state">
+    <div class="icon">📊</div>
+    <h3>Click "Scan Tags"</h3>
+    <p>Find all components on this page that have analytics tags.</p>
+  </div>
+  
+  <!-- Screen Frames View -->
+  <div id="screens-list" style="display:none;"></div>
+  <div id="screens-empty" class="empty-state" style="display:none;">
+    <div class="icon">🖼️</div>
+    <h3>No screen frames found</h3>
+    <p>Select a frame and use "Set Screen" to mark it as a screen.</p>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS TAB ═══ -->
+<div id="tab-settings" class="tab-content">
+  <!-- API Configuration -->
+  <div style="margin-bottom:16px;">
+    <div class="status-bar" style="margin-bottom:8px;">
+      <div class="status-text"><strong>📡 Google Sheets Integration</strong></div>
+    </div>
+    
+    <div class="field">
+      <label>Apps Script URL</label>
+      <input type="text" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+        Paste your deployed Apps Script web app URL here. <a href="#" id="setup-guide-link" style="color:var(--accent);">Setup guide</a>
+      </div>
+    </div>
+    
+    <div class="btn-row">
+      <button class="btn btn-primary" id="save-api-url-btn">💾 Save & Load Taxonomy</button>
+      <button class="btn btn-secondary btn-sm" id="refresh-taxonomy-btn" style="flex:none;">🔄 Refresh</button>
+    </div>
+    
+    <div id="api-status" style="font-size:11px;margin-top:8px;padding:8px;border-radius:var(--radius-sm);display:none;"></div>
+  </div>
+  
+  <!-- Taxonomy Status -->
+  <div style="margin-bottom:16px;">
+    <div class="status-bar" style="margin-bottom:8px;">
+      <div class="status-text"><strong>📊 Current Taxonomy</strong></div>
+    </div>
+    
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;color:var(--text-muted);">Screens:</span>
+        <span style="font-size:11px;font-weight:600;" id="taxonomy-screens-count">0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;color:var(--text-muted);">Events:</span>
+        <span style="font-size:11px;font-weight:600;" id="taxonomy-events-count">0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;color:var(--text-muted);">Custom Screens:</span>
+        <span style="font-size:11px;font-weight:600;color:var(--accent);" id="taxonomy-custom-screens-count">0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:var(--text-muted);">Custom Events:</span>
+        <span style="font-size:11px;font-weight:600;color:var(--accent);" id="taxonomy-custom-events-count">0</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:8px;font-style:italic;" id="taxonomy-source">
+        Using hardcoded data (fallback)
+      </div>
+    </div>
+  </div>
+  
+  <!-- Manage Custom Entries -->
+  <div>
+    <div class="status-bar" style="margin-bottom:8px;">
+      <div class="status-text"><strong>🎨 Manage Custom Entries</strong></div>
+    </div>
+    
+    <div id="custom-entries-list">
+      <div class="empty-state" style="padding:20px;">
+        <div class="icon" style="font-size:24px;">📝</div>
+        <p style="font-size:11px;">No custom entries yet. Add custom screens or events from the Tag tab.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Custom Entry Modal ═══ -->
+<div id="custom-entry-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:200;padding:20px;">
+  <div style="background:var(--bg);border-radius:var(--radius);max-width:360px;margin:40px auto;padding:16px;box-shadow:var(--shadow);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="font-size:14px;font-weight:600;" id="modal-title">Add Custom Entry</h3>
+      <button id="modal-close-btn" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0;width:24px;height:24px;">×</button>
+    </div>
+    
+    <div id="modal-content"></div>
+    
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-primary" id="modal-save-btn">Save</button>
+      <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Toast ═══ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// TAXONOMY DATA (extracted from the Tallo spreadsheet)
+// ═══════════════════════════════════════════════════════════════════════
+
+const SCREENS = [
+  "auth__splash","auth__sign_in","auth__create_account","auth__email_signup","auth__logout",
+  "onboarding__dob","onboarding__terms","onboarding__groups","onboarding__interests",
+  "onboarding__education","onboarding__location","onboarding__pursuit","onboarding__complete",
+  "home__main",
+  "career__hub","career__explore","career__search","career__detail","career__compare",
+  "career__assessment","career__quiz","career__results",
+  "community_feed__home","community_feed__post_detail","community_feed__create_post",
+  "community_feed__edit_post","community_feed__group","community_feed__profile",
+  "community_groups__groups_list","community_groups__group_detail",
+  "community_groups__group_members","community_groups__group_select",
+  "jobs__list","jobs__detail",
+  "scholarships__landing","scholarships__list","scholarships__detail",
+  "learn__courses_list",
+  "applications__main",
+  "events__main",
+  "saved__main",
+  "search__main",
+  "profile__main","profile__bio","profile__education","profile__experience",
+  "profile__skills","profile__interests","profile__accomplishments","profile__activities",
+  "profile__birth_date","profile__status","profile__private_view","profile__other_user",
+  "profile__followers_list",
+  "notifications__main",
+  "user_settings__main","user_settings__name","user_settings__email","user_settings__phone",
+  "user_settings__security","user_settings__privacy","user_settings__blocked_users",
+  "user_settings__avatar","user_settings__help","user_settings__delete",
+  "navigation__tab_bar","navigation__sidebar","navigation__header",
+  "partner__avid",
+  "resume__builder",
+  "system__error","system__modal","system__webview","system__external"
+];
+
+const EVENTS = [
+  { event:"app_opened",         cat:"Lifecycle",           desc:"App foregrounded",                   props:[] },
+  { event:"app_backgrounded",   cat:"Lifecycle",           desc:"App backgrounded",                   props:[] },
+  { event:"app_installed",      cat:"Lifecycle",           desc:"First launch",                       props:[] },
+  { event:"app_updated",        cat:"Lifecycle",           desc:"Post-update launch",                 props:[] },
+  { event:"screen_view",        cat:"Core Actions",        desc:"Screen loaded (auto-fired)",         props:[] },
+  { event:"close_clicked",      cat:"Core Actions",        desc:"Close/dismiss button",               props:[] },
+  { event:"save_clicked",       cat:"Core Actions",        desc:"Save/confirm changes",               props:[] },
+  { event:"cancel_clicked",     cat:"Core Actions",        desc:"Cancel action",                      props:[] },
+  { event:"back_clicked",       cat:"Core Actions",        desc:"Navigate back",                      props:[] },
+  { event:"edit_clicked",       cat:"Core Actions",        desc:"Enter edit mode",                    props:[] },
+  { event:"delete_clicked",     cat:"Core Actions",        desc:"Delete item",                        props:[] },
+  { event:"submit_clicked",     cat:"Form & Input",        desc:"Submit form",                        props:[] },
+  { event:"upload_clicked",     cat:"Form & Input",        desc:"Upload file/photo",                  props:[] },
+  { event:"photo_clicked",      cat:"Form & Input",        desc:"Take/select photo",                  props:[] },
+  { event:"send_clicked",       cat:"Form & Input",        desc:"Send message/comment/post",          props:[] },
+  { event:"verify_clicked",     cat:"Form & Input",        desc:"Verify email/phone",                 props:[] },
+  { event:"retry_clicked",      cat:"Form & Input",        desc:"Retry failed action",                props:[] },
+  { event:"toggle_clicked",     cat:"Form & Input",        desc:"Toggle checkbox/switch",             props:["toggle_name","is_checked"] },
+  { event:"select_clicked",     cat:"Form & Input",        desc:"Select option/item",                 props:["item_id","item_index","is_selected"] },
+  { event:"input_clear_clicked",cat:"Form & Input",        desc:"Clear input field",                  props:["field_name"] },
+  { event:"date_picker_clicked",cat:"Form & Input",        desc:"Open/interact with date picker",     props:["field"] },
+  { event:"location_select_clicked",cat:"Form & Input",    desc:"Select location",                    props:["item_index"] },
+  { event:"pill_clicked",       cat:"Form & Input",        desc:"Select/deselect pill tag",           props:["pill_id","pill_type","is_selected"] },
+  { event:"dismiss_keyboard_clicked",cat:"Form & Input",   desc:"Dismiss keyboard",                   props:[] },
+  { event:"follow_clicked",     cat:"Social & Engagement", desc:"Follow user",                        props:["target_user_id"] },
+  { event:"unblock_clicked",    cat:"Social & Engagement", desc:"Unblock user",                       props:["target_user_id"] },
+  { event:"block_clicked",      cat:"Social & Engagement", desc:"Block user",                         props:["target_user_id"] },
+  { event:"like_clicked",       cat:"Social & Engagement", desc:"Like post/comment",                  props:["post_id","comment_id","is_liked"] },
+  { event:"comment_clicked",    cat:"Social & Engagement", desc:"Open comments / comment count",      props:["post_id"] },
+  { event:"reply_clicked",      cat:"Social & Engagement", desc:"Reply to comment",                   props:["post_id","comment_id"] },
+  { event:"report_clicked",     cat:"Social & Engagement", desc:"Report content/user",                props:["target_user_id","post_id","comment_id"] },
+  { event:"sidebar_open_clicked",  cat:"Navigation",       desc:"Open sidebar/drawer",                props:[] },
+  { event:"sidebar_close_clicked", cat:"Navigation",       desc:"Close sidebar/drawer",               props:[] },
+  { event:"account_clicked",    cat:"Navigation",          desc:"Open account settings",              props:[] },
+  { event:"logout_clicked",     cat:"Navigation",          desc:"Log out",                            props:[] },
+  { event:"help_clicked",       cat:"Navigation",          desc:"Open help",                          props:[] },
+  { event:"feedback_clicked",   cat:"Navigation",          desc:"Open feedback",                      props:[] },
+  { event:"terms_clicked",      cat:"Navigation",          desc:"Open terms of service",              props:[] },
+  { event:"privacy_policy_clicked",cat:"Navigation",       desc:"Open privacy policy",                props:[] },
+  { event:"home_clicked",       cat:"Navigation",          desc:"Home tab",                           props:[] },
+  { event:"explore_clicked",    cat:"Navigation",          desc:"Explore tab",                        props:[] },
+  { event:"create_post_clicked",cat:"Navigation",          desc:"Create post tab/button",             props:[] },
+  { event:"groups_clicked",     cat:"Navigation",          desc:"Groups tab",                         props:[] },
+  { event:"profile_clicked",    cat:"Navigation",          desc:"Profile tab",                        props:[] },
+  { event:"notifications_clicked",cat:"Navigation",        desc:"Open notifications",                 props:[] },
+  { event:"tab_clicked",        cat:"Navigation",          desc:"Switch tab within screen",           props:["tab_name"] },
+  { event:"avatar_clicked",     cat:"Navigation",          desc:"Tap user avatar",                    props:["target_user_id"] },
+  { event:"menu_clicked",       cat:"Navigation",          desc:"Open menu",                          props:["menu_index"] },
+  { event:"options_clicked",    cat:"Navigation",          desc:"Open post/comment options",          props:["post_id","comment_id"] },
+  { event:"link_clicked",       cat:"Navigation",          desc:"Tap link",                           props:["url","link_name"] },
+  { event:"toolbar_clicked",    cat:"Navigation",          desc:"Tap toolbar item",                   props:["toolbar_item"] },
+  { event:"notification_clicked",cat:"Notifications",      desc:"Tap notification",                   props:["notification_id","notification_type"] },
+  { event:"visibility_clicked", cat:"Profile",             desc:"Tap visibility label",               props:[] },
+  { event:"followers_clicked",  cat:"Profile",             desc:"Open followers list",                props:[] },
+  { event:"following_clicked",  cat:"Profile",             desc:"Open following list",                props:[] },
+  { event:"name_clicked",       cat:"Settings",            desc:"Open edit name",                     props:[] },
+  { event:"security_clicked",   cat:"Settings",            desc:"Open security settings",             props:[] },
+  { event:"email_clicked",      cat:"Settings",            desc:"Open edit email",                    props:[] },
+  { event:"phone_clicked",      cat:"Settings",            desc:"Open edit phone",                    props:[] },
+  { event:"privacy_clicked",    cat:"Settings",            desc:"Open privacy settings",              props:[] },
+  { event:"blocked_users_clicked",cat:"Settings",          desc:"Open blocked users",                 props:[] },
+  { event:"delete_account_clicked",cat:"Settings",         desc:"Initiate account deletion",          props:[] },
+  { event:"join_clicked",       cat:"Community",           desc:"Join group",                         props:["group_id"] },
+  { event:"members_list_clicked",cat:"Community",          desc:"Open group members",                 props:["group_id"] },
+  { event:"group_pill_clicked", cat:"Community",           desc:"Tap group pill on post",             props:["group_id"] },
+  { event:"post_clicked",       cat:"Community",           desc:"Submit post to group",               props:["group_id"] },
+  { event:"reactions_filter_clicked",cat:"Community",      desc:"Filter reactions modal",             props:["filter_type"] },
+  { event:"confirm_clicked",    cat:"Auth / Onboarding",   desc:"Confirm (e.g., DOB)",                props:[] },
+  { event:"sso_clicked",        cat:"Auth / Onboarding",   desc:"SSO login button",                   props:["provider"] },
+  { event:"sign_up_clicked",    cat:"Auth / Onboarding",   desc:"Go to sign up",                      props:[] },
+  { event:"join_groups_clicked",cat:"Auth / Onboarding",   desc:"Join selected groups",               props:["groups_count"] },
+  { event:"skip_clicked",       cat:"Auth / Onboarding",   desc:"Skip step",                          props:["step_name"] },
+  { event:"affirm_clicked",     cat:"System / Modal",      desc:"Confirm dialog",                     props:["modal_type"] },
+  { event:"reject_clicked",     cat:"System / Modal",      desc:"Reject/decline dialog",              props:["modal_type"] },
+  { event:"webview_opened",     cat:"System / Modal",      desc:"External link confirmation shown",   props:["url","destination_type"] },
+];
+
+const PROPERTY_TYPES = {
+  target_user_id: "string",
+  group_id: "string",
+  post_id: "string",
+  comment_id: "string",
+  notification_id: "string",
+  notification_type: "string",
+  pill_id: "string",
+  pill_type: "enum",
+  item_id: "string",
+  item_index: "integer",
+  menu_index: "integer",
+  groups_count: "integer",
+  is_checked: "boolean",
+  is_selected: "boolean",
+  is_liked: "boolean",
+  toggle_name: "string",
+  field_name: "string",
+  field: "string",
+  tab_name: "string",
+  url: "string",
+  link_name: "string",
+  toolbar_item: "string",
+  filter_type: "string",
+  provider: "string",
+  step_name: "string",
+  modal_type: "string",
+  destination_type: "string",
+};
+
+const CAT_COLORS = {
+  "Lifecycle":          "var(--cat-lifecycle)",
+  "Core Actions":       "var(--cat-core)",
+  "Form & Input":       "var(--cat-form)",
+  "Social & Engagement":"var(--cat-social)",
+  "Navigation":         "var(--cat-nav)",
+  "Notifications":      "var(--cat-notif)",
+  "Profile":            "var(--cat-profile)",
+  "Settings":           "var(--cat-settings)",
+  "Community":          "var(--cat-community)",
+  "Auth / Onboarding":  "var(--cat-auth)",
+  "System / Modal":     "var(--cat-system)",
+};
+
+const CATEGORIES = [...new Set(EVENTS.map(e => e.cat))];
+
+// ═══════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════
+
+let currentNode = null;
+let currentData = null;
+let currentScreenFrame = null;
+let customProps = []; // { key, type, value_hint }
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT — Populate dropdowns
+// ═══════════════════════════════════════════════════════════════════════
+
+function init() {
+  const screenSel = document.getElementById("screen-select");
+  // Group screens by feature
+  const grouped = {};
+  SCREENS.forEach(s => {
+    const [feature] = s.split("__");
+    if (!grouped[feature]) grouped[feature] = [];
+    grouped[feature].push(s);
+  });
+  Object.keys(grouped).sort().forEach(feature => {
+    const og = document.createElement("optgroup");
+    og.label = feature.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    grouped[feature].forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      og.appendChild(opt);
+    });
+    screenSel.appendChild(og);
+  });
+
+  const catSel = document.getElementById("category-select");
+  CATEGORIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    catSel.appendChild(opt);
+  });
+
+  populateEvents();
+}
+
+function populateEvents(filterCat) {
+  const eventSel = document.getElementById("event-select");
+  const currentVal = eventSel.value;
+  eventSel.innerHTML = '<option value="">— Select event —</option>';
+
+  const filtered = filterCat ? EVENTS.filter(e => e.cat === filterCat) : EVENTS;
+
+  // Group by category
+  const grouped = {};
+  filtered.forEach(e => {
+    if (!grouped[e.cat]) grouped[e.cat] = [];
+    grouped[e.cat].push(e);
+  });
+
+  Object.keys(grouped).forEach(cat => {
+    const og = document.createElement("optgroup");
+    og.label = cat;
+    grouped[cat].forEach(e => {
+      const opt = document.createElement("option");
+      opt.value = e.event;
+      opt.textContent = e.event;
+      og.appendChild(opt);
+    });
+    eventSel.appendChild(og);
+  });
+
+  // Restore selection if still valid
+  if (currentVal && filtered.some(e => e.event === currentVal)) {
+    eventSel.value = currentVal;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PROPERTIES EDITOR
+// ═══════════════════════════════════════════════════════════════════════
+
+function renderProps() {
+  const list = document.getElementById("props-list");
+  list.innerHTML = "";
+  customProps.forEach((p, i) => {
+    const row = document.createElement("div");
+    row.className = "prop-row";
+    row.innerHTML = `
+      <input type="text" placeholder="key" value="${escHtml(p.key)}" data-idx="${i}" data-field="key" />
+      <select data-idx="${i}" data-field="type">
+        <option value="string" ${p.type==='string'?'selected':''}>string</option>
+        <option value="integer" ${p.type==='integer'?'selected':''}>int</option>
+        <option value="boolean" ${p.type==='boolean'?'selected':''}>bool</option>
+        <option value="enum" ${p.type==='enum'?'selected':''}>enum</option>
+      </select>
+      <div class="prop-remove" data-idx="${i}">×</div>
+    `;
+    list.appendChild(row);
+  });
+
+  // Wire up events
+  list.querySelectorAll("input, select").forEach(el => {
+    el.addEventListener("change", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      customProps[idx][field] = e.target.value;
+    });
+  });
+  list.querySelectorAll(".prop-remove").forEach(el => {
+    el.addEventListener("click", (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      customProps.splice(idx, 1);
+      renderProps();
+    });
+  });
+}
+
+function showSuggestedProps(eventName) {
+  const ev = EVENTS.find(e => e.event === eventName);
+  const container = document.getElementById("suggested-props");
+  if (!ev || ev.props.length === 0) {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "flex";
+  container.innerHTML = "";
+  ev.props.forEach(propName => {
+    const chip = document.createElement("div");
+    chip.className = "suggested-chip";
+    if (customProps.some(p => p.key === propName)) chip.classList.add("added");
+    chip.textContent = propName;
+    chip.addEventListener("click", () => {
+      if (!customProps.some(p => p.key === propName)) {
+        customProps.push({
+          key: propName,
+          type: PROPERTY_TYPES[propName] || "string",
+        });
+        renderProps();
+        chip.classList.add("added");
+      }
+    });
+    container.appendChild(chip);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CODE GENERATION
+// ═══════════════════════════════════════════════════════════════════════
+
+function generateRNProps(data) {
+  const lines = [];
+  lines.push(`analyticsEvent="${data.event}"`);
+  lines.push(`analyticsScreen="${data.screen_name}"`);
+  if (data.properties && Object.keys(data.properties).length > 0) {
+    lines.push(`analyticsProps={${JSON.stringify(data.properties)}}`);
+  }
+  return lines.join("\n");
+}
+
+function generateSegmentPayload(data) {
+  const payload = {
+    type: "track",
+    event: data.event,
+    properties: {
+      screen_name: data.screen_name,
+      platform: "mobile_ios | mobile_android",
+      app_version: "{{app_version}}",
+      session_id: "{{session_id}}",
+      ...(data.properties || {}),
+    },
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+function generateUsageExample(data) {
+  const propsStr = data.properties && Object.keys(data.properties).length > 0
+    ? `\n          analyticsProps={${JSON.stringify(data.properties)}}`
+    : "";
+  return `<Touchable
+          analyticsEvent="${data.event}"
+          analyticsScreen="${data.screen_name}"${propsStr}
+          onPress={handlePress}
+        >
+          {/* ${data.description || data.event} */}
+        </Touchable>`;
+}
+
+function updateCodeTab() {
+  if (!currentData) {
+    document.getElementById("code-empty").style.display = "";
+    document.getElementById("code-view").style.display = "none";
+    return;
+  }
+  document.getElementById("code-empty").style.display = "none";
+  document.getElementById("code-view").style.display = "";
+
+  document.getElementById("code-rn-props").innerHTML =
+    `<button class="copy-btn" id="copy-rn-props">COPY</button>` + escHtml(generateRNProps(currentData));
+  document.getElementById("code-segment").innerHTML =
+    `<button class="copy-btn" id="copy-segment">COPY</button>` + escHtml(generateSegmentPayload(currentData));
+  document.getElementById("code-usage").innerHTML =
+    `<button class="copy-btn" id="copy-usage">COPY</button>` + escHtml(generateUsageExample(currentData));
+
+  // Re-bind copy buttons
+  bindCopyBtn("copy-rn-props", () => generateRNProps(currentData));
+  bindCopyBtn("copy-segment", () => generateSegmentPayload(currentData));
+  bindCopyBtn("copy-usage", () => generateUsageExample(currentData));
+}
+
+function bindCopyBtn(id, textFn) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const text = textFn();
+    // Figma plugin copy approach — post to parent
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    btn.textContent = "COPIED ✓";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "COPY"; btn.classList.remove("copied"); }, 1500);
+    showToast("Copied to clipboard!");
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SELECTION HANDLING (messages from Figma)
+// ═══════════════════════════════════════════════════════════════════════
+
+window.onmessage = (event) => {
+  const msg = event.data.pluginMessage;
+  if (!msg) return;
+
+  if (msg.type === "selection") {
+    if (!msg.node) {
+      currentNode = null;
+      currentData = null;
+      currentScreenFrame = null;
+      document.getElementById("empty-state").style.display = "";
+      document.getElementById("multi-state").style.display = "none";
+      document.getElementById("tag-form").style.display = "none";
+    } else {
+      currentNode = msg.node;
+      currentData = msg.data;
+      currentScreenFrame = msg.screenFrame;
+      document.getElementById("empty-state").style.display = "none";
+      document.getElementById("multi-state").style.display = "none";
+      document.getElementById("tag-form").style.display = "";
+      loadFormFromData(msg.node, msg.data, msg.screenFrame);
+    }
+    updateCodeTab();
+  }
+
+  if (msg.type === "selection-multi") {
+    currentNode = null;
+    currentData = null;
+    document.getElementById("empty-state").style.display = "none";
+    document.getElementById("multi-state").style.display = "";
+    document.getElementById("tag-form").style.display = "none";
+    updateCodeTab();
+  }
+
+  if (msg.type === "error") {
+    showToast(msg.message, true);
+  }
+
+  if (msg.type === "scan-results") {
+    renderAuditResults(msg.results);
+  }
+
+  if (msg.type === "export-results") {
+    downloadJSON(msg.results);
+  }
+
+  if (msg.type === "screen-frames-results") {
+    renderScreenFrames(msg.results);
+  }
+
+  if (msg.type === "tag-pasted") {
+    // Load the pasted data into the form
+    const pastedData = msg.data;
+    if (pastedData) {
+      document.getElementById("event-select").value = pastedData.event || "";
+      document.getElementById("description-input").value = pastedData.description || "";
+      
+      // Load properties
+      customProps = [];
+      if (pastedData.properties) {
+        Object.entries(pastedData.properties).forEach(([key, type]) => {
+          customProps.push({ key, type: typeof type === "string" ? type : "string" });
+        });
+      }
+      renderProps();
+      
+      // Show event description
+      const ev = EVENTS.find(e => e.event === pastedData.event);
+      if (ev) {
+        const catSel = document.getElementById("category-select");
+        catSel.value = ev.cat;
+        showEventDescription(ev);
+        showSuggestedProps(pastedData.event);
+      }
+      
+      showToast("Tag pasted! Remember to save.");
+    }
+  }
+
+  if (msg.type === "sync-data") {
+    // Sync all tags to Google Sheets
+    await syncTagsToSheet(msg.tags, msg.fileName);
+  }
+
+  if (msg.type === "log-change") {
+    // Log change to Google Sheets
+    await logChange(
+      msg.action,
+      msg.nodeId,
+      msg.nodeName,
+      "tag",
+      msg.oldValue,
+      msg.newValue
+    );
+  }
+
+  if (msg.type === "screen-assignment") {
+    // Update screen frame assignment UI
+    const input = document.getElementById("screen-frame-input");
+    const currentDiv = document.getElementById("screen-frame-current");
+    const currentName = document.getElementById("screen-frame-current-name");
+    const clearBtn = document.getElementById("clear-screen-frame-btn");
+    
+    if (msg.screenName) {
+      input.value = msg.screenName;
+      currentDiv.style.display = "block";
+      currentName.textContent = msg.screenName;
+      clearBtn.style.display = "block";
+    } else {
+      input.value = "";
+      currentDiv.style.display = "none";
+      clearBtn.style.display = "none";
+    }
+  }
+};
+
+function loadFormFromData(node, data, screenFrame) {
+  const dot = document.getElementById("status-dot");
+  const text = document.getElementById("status-text");
+  
+  // Handle screen frame assignment UI
+  const isFrame = node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET";
+  const screenFrameAssignment = document.getElementById("screen-frame-assignment");
+  const screenFrameInfo = document.getElementById("screen-frame-info");
+  const screenSelect = document.getElementById("screen-select");
+  
+  if (isFrame) {
+    // Show screen frame assignment UI for frames
+    screenFrameAssignment.style.display = "block";
+    screenFrameInfo.style.display = "none";
+    
+    // Check if this frame is already a screen by looking at data
+    parent.postMessage({ pluginMessage: { type: "get-screen-assignment", nodeId: node.id } }, "*");
+    
+  } else {
+    // Show screen frame info for components
+    screenFrameAssignment.style.display = "none";
+    
+    if (screenFrame) {
+      screenFrameInfo.style.display = "block";
+      document.getElementById("current-screen-frame-name").textContent = screenFrame.screenName;
+      document.getElementById("current-screen-frame-layer").textContent = "from \"" + screenFrame.name + "\"";
+      
+      // Auto-fill screen name from frame
+      screenSelect.disabled = true;
+      screenSelect.value = screenFrame.screenName;
+      screenSelect.style.opacity = "0.6";
+    } else {
+      screenFrameInfo.style.display = "none";
+      screenSelect.disabled = false;
+      screenSelect.style.opacity = "1";
+    }
+  }
+
+  if (data) {
+    dot.className = "status-dot tagged";
+    text.innerHTML = `<strong>${escHtml(node.name)}</strong> — tagged ✓`;
+    document.getElementById("screen-select").value = data.screen_name || "";
+    document.getElementById("event-select").value = data.event || "";
+    document.getElementById("description-input").value = data.description || "";
+
+    // Load properties
+    customProps = [];
+    if (data.properties) {
+      Object.entries(data.properties).forEach(([key, type]) => {
+        customProps.push({ key, type: typeof type === "string" ? type : "string" });
+      });
+    }
+    renderProps();
+
+    // Show event description
+    const ev = EVENTS.find(e => e.event === data.event);
+    if (ev) {
+      const catSel = document.getElementById("category-select");
+      catSel.value = ev.cat;
+      showEventDescription(ev);
+      showSuggestedProps(data.event);
+    }
+  } else {
+    dot.className = "status-dot empty";
+    text.innerHTML = `<strong>${escHtml(node.name)}</strong> — no tag`;
+    document.getElementById("screen-select").value = "";
+    document.getElementById("category-select").value = "";
+    document.getElementById("event-select").value = "";
+    document.getElementById("description-input").value = "";
+    document.getElementById("event-desc").style.display = "none";
+    document.getElementById("suggested-props").style.display = "none";
+    customProps = [];
+    renderProps();
+  }
+}
+
+function showEventDescription(ev) {
+  const descEl = document.getElementById("event-desc");
+  if (ev) {
+    const color = CAT_COLORS[ev.cat] || "var(--text-muted)";
+    descEl.innerHTML = `<span class="cat-badge" style="background:${color}20;color:${color};">${ev.cat}</span> ${escHtml(ev.desc)}`;
+    descEl.style.display = "";
+  } else {
+    descEl.style.display = "none";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// AUDIT
+// ═══════════════════════════════════════════════════════════════════════
+
+function renderAuditResults(results) {
+  const list = document.getElementById("audit-list");
+  const empty = document.getElementById("audit-empty");
+  const countEl = document.getElementById("audit-count");
+
+  if (results.length === 0) {
+    list.innerHTML = "";
+    empty.style.display = "";
+    countEl.style.display = "none";
+    return;
+  }
+
+  empty.style.display = "none";
+  countEl.style.display = "";
+  document.getElementById("audit-number").textContent = results.length;
+
+  list.innerHTML = "";
+  results.forEach(r => {
+    const ev = EVENTS.find(e => e.event === r.data.event);
+    const color = ev ? (CAT_COLORS[ev.cat] || "var(--text-muted)") : "var(--text-muted)";
+    const item = document.createElement("div");
+    item.className = "audit-item";
+    item.innerHTML = `
+      <div style="width:4px;height:32px;border-radius:2px;background:${color};flex-shrink:0;"></div>
+      <div class="audit-info">
+        <div class="audit-name">${escHtml(r.name)}</div>
+        <div class="audit-event">${escHtml(r.data.event || "—")}</div>
+        <div class="audit-screen">${escHtml(r.data.screen_name || "—")}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      parent.postMessage({ pluginMessage: { type: "select-node", nodeId: r.id } }, "*");
+    });
+    list.appendChild(item);
+  });
+}
+
+function downloadJSON(results) {
+  if (results.length === 0) {
+    showToast("No tagged components found.", true);
+    return;
+  }
+  const json = JSON.stringify(results, null, 2);
+  const ta = document.createElement("textarea");
+  ta.value = json;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showToast(`Copied ${results.length} tags as JSON!`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════════════
+
+// Tabs
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+  });
+});
+
+// Category filter
+document.getElementById("category-select").addEventListener("change", (e) => {
+  populateEvents(e.target.value || null);
+});
+
+// Event selection → show description + suggested props
+document.getElementById("event-select").addEventListener("change", (e) => {
+  const ev = EVENTS.find(ev => ev.event === e.target.value);
+  showEventDescription(ev);
+  showSuggestedProps(e.target.value);
+
+  // Auto-add required props if empty
+  if (ev && ev.props.length > 0 && customProps.length === 0) {
+    ev.props.forEach(propName => {
+      customProps.push({
+        key: propName,
+        type: PROPERTY_TYPES[propName] || "string",
+      });
+    });
+    renderProps();
+  }
+});
+
+// Add property
+document.getElementById("add-prop-btn").addEventListener("click", () => {
+  customProps.push({ key: "", type: "string" });
+  renderProps();
+  // Focus last input
+  const inputs = document.querySelectorAll("#props-list input[data-field='key']");
+  if (inputs.length) inputs[inputs.length - 1].focus();
+});
+
+// Save
+document.getElementById("save-btn").addEventListener("click", () => {
+  let screen = document.getElementById("screen-select").value;
+  const event = document.getElementById("event-select").value;
+  const desc = document.getElementById("description-input").value.trim();
+
+  // If inside a screen frame, use the derived screen name
+  if (currentScreenFrame) {
+    screen = currentScreenFrame.screenName;
+  }
+
+  if (!event) {
+    showToast("Please select an event.", true);
+    return;
+  }
+
+  const properties = {};
+  customProps.forEach(p => {
+    if (p.key.trim()) {
+      properties[p.key.trim()] = p.type;
+    }
+  });
+
+  const oldData = currentData ? JSON.stringify(currentData) : null;
+  
+  const data = {
+    event,
+    screen_name: screen,
+    description: desc,
+    properties,
+    tagged_at: new Date().toISOString(),
+  };
+
+  currentData = data;
+  parent.postMessage({ pluginMessage: { type: "save", data, oldData } }, "*");
+  updateCodeTab();
+});
+
+// Clear
+document.getElementById("clear-btn").addEventListener("click", () => {
+  parent.postMessage({ pluginMessage: { type: "clear" } }, "*");
+  currentData = null;
+  updateCodeTab();
+});
+
+// Scan tags
+document.getElementById("scan-btn").addEventListener("click", () => {
+  document.getElementById("audit-list").style.display = "block";
+  document.getElementById("screens-list").style.display = "none";
+  document.getElementById("screens-empty").style.display = "none";
+  parent.postMessage({ pluginMessage: { type: "scan-page" } }, "*");
+});
+
+// Scan screen frames
+document.getElementById("scan-screens-btn").addEventListener("click", () => {
+  document.getElementById("audit-list").style.display = "none";
+  document.getElementById("audit-empty").style.display = "none";
+  document.getElementById("audit-count").style.display = "none";
+  parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+});
+
+// Export
+document.getElementById("export-btn").addEventListener("click", () => {
+  parent.postMessage({ pluginMessage: { type: "export-all" } }, "*");
+});
+
+// Sync to Sheet
+document.getElementById("sync-sheet-btn").addEventListener("click", async () => {
+  if (!apiUrl) {
+    showToast("Please configure API URL in Settings first", true);
+    return;
+  }
+  
+  // Request all tags from Figma
+  parent.postMessage({ pluginMessage: { type: "sync-to-sheet" } }, "*");
+});
+
+// Set screen frame
+document.getElementById("set-screen-frame-btn").addEventListener("click", () => {
+  const screenName = document.getElementById("screen-frame-input").value.trim();
+  if (!screenName) {
+    showToast("Please enter a screen name", true);
+    return;
+  }
+  parent.postMessage({ pluginMessage: { type: "set-screen-frame", screenName } }, "*");
+});
+
+// Clear screen frame
+document.getElementById("clear-screen-frame-btn").addEventListener("click", () => {
+  parent.postMessage({ pluginMessage: { type: "clear-screen-frame" } }, "*");
+});
+
+// Render screen frames list
+function renderScreenFrames(results) {
+  const list = document.getElementById("screens-list");
+  const empty = document.getElementById("screens-empty");
+  
+  if (results.length === 0) {
+    list.style.display = "none";
+    empty.style.display = "block";
+    return;
+  }
+  
+  list.style.display = "block";
+  empty.style.display = "none";
+  list.innerHTML = "";
+  
+  results.forEach(screen => {
+    const item = document.createElement("div");
+    item.className = "audit-item";
+    item.innerHTML = `
+      <div style="width:4px;height:32px;border-radius:2px;background:var(--cat-nav);flex-shrink:0;"></div>
+      <div class="audit-info">
+        <div class="audit-name">${escHtml(screen.name)}</div>
+        <div class="audit-event">${escHtml(screen.screenName)}</div>
+        <div class="audit-screen">${escHtml(screen.type)}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      parent.postMessage({ pluginMessage: { type: "select-node", nodeId: screen.id } }, "*");
+    });
+    list.appendChild(item);
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// COPY/PASTE TAG
+// ═══════════════════════════════════════════════════════════════════════
+
+// Copy tag button
+document.getElementById("copy-tag-btn").addEventListener("click", () => {
+  if (!currentData) {
+    showToast("No tag to copy", true);
+    return;
+  }
+  
+  // Copy everything except screen_name and tagged_at
+  const tagToCopy = {
+    event: currentData.event,
+    description: currentData.description,
+    properties: currentData.properties
+  };
+  
+  parent.postMessage({ pluginMessage: { type: "copy-tag", data: tagToCopy } }, "*");
+  showToast("Tag copied to clipboard!");
+});
+
+// Paste tag button
+document.getElementById("paste-tag-btn").addEventListener("click", () => {
+  parent.postMessage({ pluginMessage: { type: "paste-tag" } }, "*");
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// VERSION CONTROL — Change History & Sync
+// ═══════════════════════════════════════════════════════════════════════
+
+async function logChange(action, nodeId, nodeName, field, oldValue, newValue) {
+  if (!apiUrl) return; // Silently skip if API not configured
+  
+  try {
+    await fetch(apiUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "logChange",
+        fileName: "Figma File", // Figma plugin doesn't have access to file name
+        nodeId: nodeId,
+        nodeName: nodeName,
+        action: action,
+        field: field,
+        oldValue: oldValue || "",
+        newValue: newValue || ""
+      })
+    });
+    // Silently succeed - don't interrupt user flow
+  } catch (err) {
+    // Silently fail - logging is not critical
+    console.error("Failed to log change:", err);
+  }
+}
+
+async function syncTagsToSheet(tags, fileName) {
+  if (!apiUrl) {
+    showToast("Please configure API URL in Settings first", true);
+    return;
+  }
+  
+  showToast("Syncing to Google Sheets...");
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "syncTags",
+        fileName: fileName || "Figma File",
+        tags: tags
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || "Failed to sync");
+    
+    showToast(`✅ Synced ${result.count} tags to Google Sheets!`);
+    
+  } catch (err) {
+    showToast("Failed to sync: " + err.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+
+function escHtml(str) {
+  if (!str) return "";
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast" + (isError ? " error" : "");
+  setTimeout(() => t.classList.add("show"), 10);
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SETTINGS — API URL & Taxonomy Management
+// ═══════════════════════════════════════════════════════════════════════
+
+let apiUrl = null;
+let taxonomyData = null;
+
+// Save API URL to plugin storage
+document.getElementById("save-api-url-btn").addEventListener("click", async () => {
+  const url = document.getElementById("api-url-input").value.trim();
+  if (!url) {
+    showToast("Please enter an API URL", true);
+    return;
+  }
+  
+  // Validate URL format
+  if (!url.startsWith("https://script.google.com/")) {
+    showToast("URL must be a Google Apps Script URL", true);
+    return;
+  }
+  
+  apiUrl = url;
+  parent.postMessage({ pluginMessage: { type: "save-api-url", url } }, "*");
+  showToast("Saving API URL...");
+  
+  // Try to load taxonomy
+  await loadTaxonomyFromAPI();
+});
+
+// Refresh taxonomy button
+document.getElementById("refresh-taxonomy-btn").addEventListener("click", async () => {
+  if (!apiUrl) {
+    showToast("Please configure API URL first", true);
+    return;
+  }
+  await loadTaxonomyFromAPI();
+});
+
+// Load API URL from storage on init
+async function loadAPIUrlFromStorage() {
+  parent.postMessage({ pluginMessage: { type: "get-api-url" } }, "*");
+}
+
+// Fetch taxonomy from API
+async function loadTaxonomyFromAPI() {
+  if (!apiUrl) return;
+  
+  const statusEl = document.getElementById("api-status");
+  statusEl.style.display = "block";
+  statusEl.style.background = "var(--accent-dim)";
+  statusEl.style.color = "var(--accent)";
+  statusEl.textContent = "⏳ Loading taxonomy from Google Sheets...";
+  
+  try {
+    const response = await fetch(apiUrl + "?action=getTaxonomy");
+    if (!response.ok) throw new Error("Failed to fetch: " + response.status);
+    
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    
+    taxonomyData = data;
+    
+    // Merge with hardcoded data
+    if (data.screens && data.screens.length > 0) {
+      // Replace SCREENS with fetched data
+      SCREENS.length = 0;
+      SCREENS.push(...data.screens);
+    }
+    
+    if (data.events && data.events.length > 0) {
+      // Replace EVENTS with fetched data
+      EVENTS.length = 0;
+      EVENTS.push(...data.events);
+    }
+    
+    if (data.propertyTypes && Object.keys(data.propertyTypes).length > 0) {
+      // Merge with existing PROPERTY_TYPES
+      Object.assign(PROPERTY_TYPES, data.propertyTypes);
+    }
+    
+    // Re-populate dropdowns
+    init();
+    
+    // Update UI
+    updateTaxonomyStatus();
+    updateCustomEntriesList();
+    
+    statusEl.style.background = "var(--accent)";
+    statusEl.style.color = "#0a0a1a";
+    statusEl.textContent = "✅ Taxonomy loaded successfully!";
+    setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+    
+    showToast("Taxonomy loaded from Google Sheets!");
+    
+  } catch (err) {
+    statusEl.style.background = "var(--danger-dim)";
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "❌ Failed to load: " + err.message;
+    showToast("Failed to load taxonomy: " + err.message, true);
+  }
+}
+
+// Update taxonomy status display
+function updateTaxonomyStatus() {
+  document.getElementById("taxonomy-screens-count").textContent = SCREENS.length;
+  document.getElementById("taxonomy-events-count").textContent = EVENTS.length;
+  
+  if (taxonomyData) {
+    document.getElementById("taxonomy-custom-screens-count").textContent = 
+      taxonomyData.customScreens ? taxonomyData.customScreens.length : 0;
+    document.getElementById("taxonomy-custom-events-count").textContent = 
+      taxonomyData.customEvents ? taxonomyData.customEvents.length : 0;
+    document.getElementById("taxonomy-source").textContent = 
+      "Loaded from Google Sheets (" + new Date().toLocaleString() + ")";
+  } else {
+    document.getElementById("taxonomy-custom-screens-count").textContent = "0";
+    document.getElementById("taxonomy-custom-events-count").textContent = "0";
+    document.getElementById("taxonomy-source").textContent = "Using hardcoded data (fallback)";
+  }
+}
+
+// Update custom entries list
+function updateCustomEntriesList() {
+  const list = document.getElementById("custom-entries-list");
+  
+  if (!taxonomyData || 
+      (!taxonomyData.customScreens?.length && !taxonomyData.customEvents?.length)) {
+    list.innerHTML = `
+      <div class="empty-state" style="padding:20px;">
+        <div class="icon" style="font-size:24px;">📝</div>
+        <p style="font-size:11px;">No custom entries yet. Add custom screens or events from the Tag tab.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = "";
+  
+  // Custom screens
+  if (taxonomyData.customScreens && taxonomyData.customScreens.length > 0) {
+    const screensHeader = document.createElement("div");
+    screensHeader.style.cssText = "font-size:11px;font-weight:600;margin-bottom:6px;color:var(--text-muted);";
+    screensHeader.textContent = "Custom Screens";
+    list.appendChild(screensHeader);
+    
+    taxonomyData.customScreens.forEach(screen => {
+      const item = createCustomEntryItem("screen", screen);
+      list.appendChild(item);
+    });
+  }
+  
+  // Custom events
+  if (taxonomyData.customEvents && taxonomyData.customEvents.length > 0) {
+    const eventsHeader = document.createElement("div");
+    eventsHeader.style.cssText = "font-size:11px;font-weight:600;margin:12px 0 6px;color:var(--text-muted);";
+    eventsHeader.textContent = "Custom Events";
+    list.appendChild(eventsHeader);
+    
+    taxonomyData.customEvents.forEach(event => {
+      const item = createCustomEntryItem("event", event.event, event);
+      list.appendChild(item);
+    });
+  }
+}
+
+function createCustomEntryItem(type, name, data) {
+  const item = document.createElement("div");
+  item.className = "audit-item";
+  item.style.marginBottom = "6px";
+  
+  const info = document.createElement("div");
+  info.className = "audit-info";
+  info.style.flex = "1";
+  
+  const nameEl = document.createElement("div");
+  nameEl.style.cssText = "font-weight:600;font-size:11px;";
+  nameEl.textContent = name;
+  info.appendChild(nameEl);
+  
+  if (type === "event" && data) {
+    const catEl = document.createElement("div");
+    catEl.style.cssText = "font-size:10px;color:var(--accent);";
+    catEl.textContent = data.cat || "Custom";
+    info.appendChild(catEl);
+    
+    if (data.desc) {
+      const descEl = document.createElement("div");
+      descEl.style.cssText = "font-size:10px;color:var(--text-muted);";
+      descEl.textContent = data.desc;
+      info.appendChild(descEl);
+    }
+  }
+  
+  item.appendChild(info);
+  
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "btn btn-danger btn-sm";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.style.flex = "none";
+  deleteBtn.style.width = "60px";
+  deleteBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await deleteCustomEntry(type, name);
+  });
+  
+  item.appendChild(deleteBtn);
+  
+  return item;
+}
+
+async function deleteCustomEntry(type, name) {
+  if (!apiUrl) {
+    showToast("API URL not configured", true);
+    return;
+  }
+  
+  if (!confirm(`Delete custom ${type}: "${name}"?`)) return;
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "deleteCustom",
+        type: type,
+        name: name
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || "Failed to delete");
+    
+    showToast(`Custom ${type} deleted`);
+    await loadTaxonomyFromAPI();
+    
+  } catch (err) {
+    showToast("Failed to delete: " + err.message, true);
+  }
+}
+
+// Setup guide link
+document.getElementById("setup-guide-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  showToast("Check SHEET_SETUP.md in the plugin folder");
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// CUSTOM ENTRIES — Add/Delete Modal
+// ═══════════════════════════════════════════════════════════════════════
+
+let customEntryType = null;
+let customEntryData = null;
+
+// Add custom screen button
+document.getElementById("add-custom-screen-btn").addEventListener("click", () => {
+  openCustomEntryModal("screen");
+});
+
+// Add custom event button
+document.getElementById("add-custom-event-btn").addEventListener("click", () => {
+  openCustomEntryModal("event");
+});
+
+function openCustomEntryModal(type) {
+  customEntryType = type;
+  const modal = document.getElementById("custom-entry-modal");
+  const title = document.getElementById("modal-title");
+  const content = document.getElementById("modal-content");
+  
+  if (type === "screen") {
+    title.textContent = "Add Custom Screen";
+    content.innerHTML = `
+      <div class="field">
+        <label>Screen Name</label>
+        <input type="text" id="custom-screen-name" placeholder="e.g. my_feature__my_screen" />
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Use format: feature__screen (e.g., settings__notifications)
+        </div>
+      </div>
+    `;
+  } else if (type === "event") {
+    title.textContent = "Add Custom Event";
+    content.innerHTML = `
+      <div class="field">
+        <label>Event Name</label>
+        <input type="text" id="custom-event-name" placeholder="e.g. my_button_clicked" />
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="custom-event-category">
+          <option value="Custom">Custom</option>
+          ${CATEGORIES.map(cat => `<option value="${escHtml(cat)}">${escHtml(cat)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label>Description (optional)</label>
+        <input type="text" id="custom-event-desc" placeholder="e.g. User tapped custom button" />
+      </div>
+      <div class="field">
+        <label>Suggested Props (optional, comma-separated)</label>
+        <input type="text" id="custom-event-props" placeholder="e.g. button_id,is_active" />
+      </div>
+    `;
+  }
+  
+  modal.style.display = "block";
+  
+  // Focus first input
+  setTimeout(() => {
+    const firstInput = content.querySelector("input");
+    if (firstInput) firstInput.focus();
+  }, 100);
+}
+
+// Modal close
+document.getElementById("modal-close-btn").addEventListener("click", closeCustomEntryModal);
+document.getElementById("modal-cancel-btn").addEventListener("click", closeCustomEntryModal);
+
+function closeCustomEntryModal() {
+  document.getElementById("custom-entry-modal").style.display = "none";
+  customEntryType = null;
+  customEntryData = null;
+}
+
+// Modal save
+document.getElementById("modal-save-btn").addEventListener("click", async () => {
+  if (customEntryType === "screen") {
+    await saveCustomScreen();
+  } else if (customEntryType === "event") {
+    await saveCustomEvent();
+  }
+});
+
+async function saveCustomScreen() {
+  const name = document.getElementById("custom-screen-name").value.trim();
+  
+  if (!name) {
+    showToast("Please enter a screen name", true);
+    return;
+  }
+  
+  // Check if already exists
+  if (SCREENS.includes(name)) {
+    showToast("Screen already exists", true);
+    return;
+  }
+  
+  if (!apiUrl) {
+    showToast("Please configure API URL in Settings first", true);
+    return;
+  }
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "addCustom",
+        type: "screen",
+        name: name
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || "Failed to save");
+    
+    // Add to local data
+    SCREENS.push(name);
+    init(); // Re-populate dropdowns
+    
+    // Select the new screen
+    document.getElementById("screen-select").value = name;
+    
+    showToast("Custom screen added!");
+    closeCustomEntryModal();
+    
+    // Reload taxonomy to update counts
+    await loadTaxonomyFromAPI();
+    
+  } catch (err) {
+    showToast("Failed to save: " + err.message, true);
+  }
+}
+
+async function saveCustomEvent() {
+  const name = document.getElementById("custom-event-name").value.trim();
+  const category = document.getElementById("custom-event-category").value;
+  const description = document.getElementById("custom-event-desc").value.trim();
+  const propsInput = document.getElementById("custom-event-props").value.trim();
+  const props = propsInput ? propsInput.split(",").map(p => p.trim()).filter(p => p) : [];
+  
+  if (!name) {
+    showToast("Please enter an event name", true);
+    return;
+  }
+  
+  // Check if already exists
+  if (EVENTS.find(e => e.event === name)) {
+    showToast("Event already exists", true);
+    return;
+  }
+  
+  if (!apiUrl) {
+    showToast("Please configure API URL in Settings first", true);
+    return;
+  }
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "addCustom",
+        type: "event",
+        name: name,
+        category: category,
+        description: description,
+        props: props
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || "Failed to save");
+    
+    // Add to local data
+    const newEvent = {
+      event: name,
+      cat: category,
+      desc: description,
+      props: props,
+      isCustom: true
+    };
+    EVENTS.push(newEvent);
+    
+    // Add to categories if needed
+    if (!CATEGORIES.includes(category)) {
+      CATEGORIES.push(category);
+    }
+    
+    init(); // Re-populate dropdowns
+    
+    // Select the new event
+    document.getElementById("event-select").value = name;
+    showEventDescription(newEvent);
+    showSuggestedProps(name);
+    
+    showToast("Custom event added!");
+    closeCustomEntryModal();
+    
+    // Reload taxonomy to update counts
+    await loadTaxonomyFromAPI();
+    
+  } catch (err) {
+    showToast("Failed to save: " + err.message, true);
+  }
+}
+
+// Close modal on outside click
+document.getElementById("custom-entry-modal").addEventListener("click", (e) => {
+  if (e.target.id === "custom-entry-modal") {
+    closeCustomEntryModal();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// MESSAGE HANDLERS — Extended for settings
+// ═══════════════════════════════════════════════════════════════════════
+
+// Extend the existing window.onmessage handler
+const originalOnMessage = window.onmessage;
+window.onmessage = async (event) => {
+  const msg = event.data.pluginMessage;
+  if (!msg) return;
+  
+  // Handle API URL responses
+  if (msg.type === "api-url-loaded") {
+    apiUrl = msg.url;
+    if (apiUrl) {
+      document.getElementById("api-url-input").value = apiUrl;
+      await loadTaxonomyFromAPI();
+    }
+    updateTaxonomyStatus();
+  }
+  
+  // Call original handler
+  if (originalOnMessage) originalOnMessage(event);
+};
+
+// ═══ Boot ═══
+init();
+loadAPIUrlFromStorage();
+updateTaxonomyStatus();
+</script>
+</body>
+</html>
