@@ -269,10 +269,10 @@ function syncTags(data) {
   let rowIndex = 2; // Start from row 2 (after header)
   
   tags.forEach(tag => {
-    // Construct Figma deep link
+    // Construct Figma deep link (using new /design/ format)
     const nodeId = tag.node_id || "";
     const figmaUrl = fileKey && nodeId 
-      ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
+      ? `https://www.figma.com/design/${fileKey}/?node-id=${nodeId.replace(':', '-')}`
       : "";
     
     tagsSheet.appendRow([
@@ -327,10 +327,10 @@ function syncTags(data) {
   let screenRowIndex = 2; // Start from row 2 (after header)
   
   screenFrames.forEach(screen => {
-    // Construct Figma deep link
+    // Construct Figma deep link (using new /design/ format)
     const nodeId = screen.node_id || "";
     const figmaUrl = fileKey && nodeId 
-      ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
+      ? `https://www.figma.com/design/${fileKey}/?node-id=${nodeId.replace(':', '-')}`
       : "";
     
     screensSheet.appendRow([
