@@ -826,7 +826,8 @@ const CAT_COLORS = {
   "System / Modal":     "var(--cat-system)",
 };
 
-const CATEGORIES = [...new Set(EVENTS.map(e => e.cat))];
+// Derived dynamically — rebuilt when events load from API
+let CATEGORIES = [];
 
 // ═══════════════════════════════════════════════════════════════════════
 // STATE
@@ -2056,6 +2057,8 @@ async function loadTaxonomyFromAPI() {
       EVENTS.length = 0;
       const validEvents = data.events.filter(e => e && typeof e.event === 'string' && e.event.trim());
       EVENTS.push(...validEvents);
+      // Rebuild categories from loaded events
+      CATEGORIES = [...new Set(EVENTS.map(e => e.cat).filter(Boolean))];
     }
     
     if (data.propertyTypes && Object.keys(data.propertyTypes).length > 0) {
