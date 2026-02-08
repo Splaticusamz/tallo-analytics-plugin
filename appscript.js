@@ -233,8 +233,9 @@ function logChange(data) {
 
 function syncTags(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const fileKey = data.fileKey || "";
   
-  // Create or get the Tags tab
+  // ─── Sync Tags Tab ───────────────────────────────────────────────────────────
   let tagsSheet = ss.getSheetByName("Tags");
   if (!tagsSheet) {
     tagsSheet = ss.insertSheet("Tags");
@@ -260,8 +261,6 @@ function syncTags(data) {
   
   // Append all tags
   const tags = data.tags || [];
-  const fileKey = data.fileKey || "";
-  
   tags.forEach(tag => {
     // Construct Figma deep link
     const nodeId = tag.node_id || "";
@@ -284,8 +283,54 @@ function syncTags(data) {
     ]);
   });
   
+  // ─── Sync Screen Assignments Tab ────────────────────────────────────────────
+  let screensSheet = ss.getSheetByName("Screen Assignments");
+  if (!screensSheet) {
+    screensSheet = ss.insertSheet("Screen Assignments");
+    screensSheet.appendRow([
+      "Synced At",
+      "File Name",
+      "Figma Link",
+      "Node ID",
+      "Frame Name",
+      "Frame Type",
+      "Screen Name",
+      "Assigned"
+    ]);
+    
+    // Format the Assigned column as checkboxes
+    screensSheet.getRange("H2:H1000").insertCheckboxes();
+  }
+  
+  // Clear existing data (keep header)
+  if (screensSheet.getLastRow() > 1) {
+    screensSheet.deleteRows(2, screensSheet.getLastRow() - 1);
+  }
+  
+  // Append all screen frames
+  const screenFrames = data.screenFrames || [];
+  screenFrames.forEach(screen => {
+    // Construct Figma deep link
+    const nodeId = screen.node_id || "";
+    const figmaLink = fileKey && nodeId 
+      ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
+      : "";
+    
+    screensSheet.appendRow([
+      new Date().toISOString(),
+      data.fileName || "Unknown",
+      figmaLink,
+      nodeId,
+      screen.node_name || "",
+      screen.node_type || "",
+      screen.screen_name || "",
+      true // Assigned checkbox (true because these are assigned frames)
+    ]);
+  });
+  
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
-    count: tags.length
+    count: tags.length,
+    screenCount: screenFrames.length
   })).setMimeType(ContentService.MimeType.JSON);
 }

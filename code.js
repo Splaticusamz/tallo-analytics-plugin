@@ -284,9 +284,23 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "sync-to-sheet") {
-    // Gather all tags and send to UI for syncing
+    // Gather all tags and screen frames, send to UI for syncing
     const results = [];
+    const screenFrames = [];
+    
     function walkExport(node) {
+      // Check if this is a screen frame
+      const screenName = node.getPluginData(SCREEN_FRAME_KEY);
+      if (screenName) {
+        screenFrames.push({
+          node_id: node.id,
+          node_name: node.name,
+          node_type: node.type,
+          screen_name: screenName
+        });
+      }
+      
+      // Check if this has analytics data
       const data = getAnalyticsData(node);
       if (data) {
         const exportData = {
@@ -302,6 +316,7 @@ figma.ui.onmessage = (msg) => {
         }
         results.push(exportData);
       }
+      
       if ("children" in node) {
         for (const child of node.children) {
           walkExport(child);
@@ -313,6 +328,7 @@ figma.ui.onmessage = (msg) => {
     figma.ui.postMessage({ 
       type: "sync-data", 
       tags: results,
+      screenFrames: screenFrames,
       fileName: figma.root.name,
       fileKey: figma.fileKey
     });

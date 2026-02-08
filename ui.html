@@ -1145,7 +1145,7 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "sync-data") {
-    await syncTagsToSheet(msg.tags, msg.fileName, msg.fileKey);
+    await syncTagsToSheet(msg.tags, msg.fileName, msg.fileKey, msg.screenFrames);
   }
 
   if (msg.type === "log-change") {
@@ -1552,7 +1552,7 @@ async function logChange(changeAction, nodeId, nodeName, field, oldValue, newVal
   }
 }
 
-async function syncTagsToSheet(tags, fileName, fileKey) {
+async function syncTagsToSheet(tags, fileName, fileKey, screenFrames) {
   if (!apiUrl) {
     showToast("Please configure API URL in Settings first", true);
     return;
@@ -1567,14 +1567,15 @@ async function syncTagsToSheet(tags, fileName, fileKey) {
         action: "syncTags",
         fileName: fileName || "Figma File",
         fileKey: fileKey || "",
-        tags: tags
+        tags: tags,
+        screenFrames: screenFrames || []
       })
     });
     
     const result = await response.json();
     if (!result.success) throw new Error(result.error || "Failed to sync");
     
-    showToast(`✅ Synced ${result.count} tags to Google Sheets!`);
+    showToast(`✅ Synced ${result.count} tags and ${result.screenCount || 0} screens to Google Sheets!`);
     
   } catch (err) {
     showToast("Failed to sync: " + err.message, true);

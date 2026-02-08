@@ -102,6 +102,47 @@ pill_type           enum
 1. Just create the header row
 2. This tab will be populated automatically when users save/clear tags
 
+### Tab 6: Tags (Auto-created)
+
+**Note:** This tab is automatically created when you first use "Sync to Sheet"
+
+**Columns:**
+- A: `synced_at`
+- B: `file_name`
+- C: `figma_link` (clickable link to open component in Figma)
+- D: `node_id`
+- E: `node_name`
+- F: `node_type`
+- G: `event`
+- H: `screen_name`
+- I: `description`
+- J: `properties` (JSON)
+- K: `tagged_at`
+
+**Purpose:**
+- Complete backup of all analytics tags from the current Figma page
+- Replaces all data on each sync (full snapshot)
+- Click the Figma Link to jump directly to that component in Figma
+
+### Tab 7: Screen Assignments (Auto-created)
+
+**Note:** This tab is automatically created when you first use "Sync to Sheet"
+
+**Columns:**
+- A: `synced_at`
+- B: `file_name`
+- C: `figma_link` (clickable link to open screen frame in Figma)
+- D: `node_id`
+- E: `frame_name`
+- F: `frame_type`
+- G: `screen_name`
+- H: `assigned` (checkbox, always checked for synced screens)
+
+**Purpose:**
+- Shows all screen frames that have been assigned screen names
+- Click the Figma Link to jump directly to that screen frame in Figma
+- Use the checkbox column to track review/QA status
+
 ## Step 3: Deploy the Apps Script
 
 1. In your Google Sheet, click **Extensions > Apps Script**
