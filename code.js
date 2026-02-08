@@ -325,9 +325,15 @@ figma.ui.onmessage = (msg) => {
     }
     walkExport(figma.currentPage);
     
+    // Debug: Log fileKey
+    console.log("figma.fileKey:", figma.fileKey);
+    console.log("figma.root.name:", figma.root.name);
+    
     // Check if file has a fileKey (only available for cloud-saved files)
     if (!figma.fileKey) {
-      figma.notify("⚠️ File must be saved to Figma cloud to generate deep links", { timeout: 3000 });
+      figma.notify("⚠️ File must be saved to Figma cloud to generate deep links. fileKey is: " + (figma.fileKey === null ? "null" : "undefined"), { timeout: 5000 });
+    } else {
+      figma.notify("✅ FileKey found: " + figma.fileKey, { timeout: 3000 });
     }
     
     figma.ui.postMessage({ 
