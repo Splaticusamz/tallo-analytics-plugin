@@ -2816,6 +2816,13 @@ loadFileKeyFromStorage();
 updateTaxonomyStatus();
 updateSettingsView();
 
+// Ensure taxonomy loads after settings are retrieved (fallback timer)
+setTimeout(async () => {
+  if (apiUrl && apiToken && SCREENS.length === 0 && EVENTS.length === 0) {
+    await loadTaxonomyFromAPI();
+  }
+}, 1500);
+
 // Issue 10: Initialize sync status
 updateSyncStatus("", "Not synced");
 </script>
