@@ -37,8 +37,9 @@ function doGet(e) {
   const token = e.parameter.token;
   if (token !== API_TOKEN) {
     return ContentService.createTextOutput(JSON.stringify({
+      success: false,
       error: "Unauthorized: Invalid or missing API token"
-    })).setMimeType(ContentService.MimeType.JSON).setResponseCode(403);
+    })).setMimeType(ContentService.MimeType.JSON);
   }
   
   const action = e.parameter.action;
@@ -73,8 +74,9 @@ function doPost(e) {
     const token = data.token;
     if (token !== API_TOKEN) {
       return ContentService.createTextOutput(JSON.stringify({
+        success: false,
         error: "Unauthorized: Invalid or missing API token"
-      })).setMimeType(ContentService.MimeType.JSON).setResponseCode(403);
+      })).setMimeType(ContentService.MimeType.JSON);
     }
     
     const action = data.action;
@@ -374,13 +376,15 @@ function syncTags(data) {
     "Node ID",
     "Frame Name",
     "Frame Type",
-    "Screen Name",
-    "Assigned"
+    "Screen Name"
   ]);
   
-  // Format the Assigned column as checkboxes if it's a new sheet
-  if (screensSheet.getLastRow() === 1) { // Only header exists
-    screensSheet.getRange("H2:H1000").insertCheckboxes();
+  // Migration: Remove old "Assigned" column if it exists
+  if (screensSheet.getLastColumn() >= 8) {
+    const headerRow = screensSheet.getRange(1, 1, 1, screensSheet.getLastColumn()).getValues()[0];
+    if (headerRow[7] === "Assigned") {
+      screensSheet.deleteColumn(8);
+    }
   }
   
   // Get existing screen data for upsert
@@ -414,8 +418,7 @@ function syncTags(data) {
       nodeId,
       screen.node_name || "",
       screen.node_type || "",
-      screen.screen_name || "",
-      true // Assigned checkbox
+      screen.screen_name || ""
     ];
     
     if (existingScreenRowMap.has(nodeId)) {
