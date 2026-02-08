@@ -1460,15 +1460,10 @@ document.getElementById("event-select").addEventListener("change", (e) => {
   showEventDescription(ev);
   showSuggestedProps(e.target.value);
 
-  // Issue 9: Auto-set category filter to match event's category
+  // Auto-set category to match event's category
   if (ev && ev.cat) {
-    const categoryFilter = document.getElementById("category-filter");
-    if (categoryFilter) {
-      categoryFilter.value = ev.cat;
-      // Trigger the filter to update the visible events
-      const changeEvent = new Event('change', { bubbles: true });
-      categoryFilter.dispatchEvent(changeEvent);
-    }
+    const catSel = document.getElementById("category-select");
+    catSel.value = ev.cat;
   }
 
   // Auto-add required props if empty
