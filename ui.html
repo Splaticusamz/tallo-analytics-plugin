@@ -1815,7 +1815,7 @@ async function loadTaxonomyFromAPI() {
       SCREENS.length = 0;
       const validScreens = data.screens.filter(s => {
         // Handle both object format { name, category } and old string format
-        if (typeof s === 'object' && s.name) {
+        if (typeof s === 'object' && s !== null && s.name && typeof s.name === 'string') {
           return s.name.trim();
         } else if (typeof s === 'string') {
           return s.trim();
@@ -1823,12 +1823,16 @@ async function loadTaxonomyFromAPI() {
         return false;
       }).map(s => {
         // Normalize to object format
-        if (typeof s === 'object' && s.name) {
-          return s;
-        } else {
+        if (typeof s === 'object' && s !== null && s.name) {
+          return {
+            name: s.name,
+            category: s.category || "Other"
+          };
+        } else if (typeof s === 'string') {
           return { name: s, category: "Other" };
         }
-      });
+        return null;
+      }).filter(s => s !== null);
       SCREENS.push(...validScreens);
     }
     

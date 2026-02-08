@@ -78,10 +78,10 @@ function getTaxonomy() {
   const screensSheet = ss.getSheetByName(SCREENS_TAB);
   const screensData = screensSheet ? screensSheet.getDataRange().getValues() : [];
   const screens = screensData.slice(1)
-    .filter(row => row[0]) // Has screen name
+    .filter(row => row[0] && String(row[0]).trim()) // Has screen name and it's not empty
     .map(row => ({
-      name: row[0],
-      category: row[1] || "Other"
+      name: String(row[0]).trim(),
+      category: row[1] ? String(row[1]).trim() : "Other"
     }));
   
   // Read Events tab (columns: event, category, description, props)
@@ -109,9 +109,9 @@ function getTaxonomy() {
   const customEvents = [];
   
   customData.slice(1).forEach(row => {
-    if (row[0] === "screen" && row[1]) {
+    if (row[0] === "screen" && row[1] && String(row[1]).trim()) {
       customScreens.push({
-        name: row[1],
+        name: String(row[1]).trim(),
         category: "Custom",
         isCustom: true
       });
