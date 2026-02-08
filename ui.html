@@ -1525,6 +1525,14 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+    
+    // Auto-scan node lists when switching to relevant tabs
+    if (tab.dataset.tab === "audit") {
+      parent.postMessage({ pluginMessage: { type: "scan-page" } }, "*");
+    }
+    if (tab.dataset.tab === "screens") {
+      parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+    }
   });
 });
 
