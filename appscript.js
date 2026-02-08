@@ -261,17 +261,19 @@ function syncTags(data) {
   
   // Append all tags
   const tags = data.tags || [];
+  let rowIndex = 2; // Start from row 2 (after header)
+  
   tags.forEach(tag => {
     // Construct Figma deep link
     const nodeId = tag.node_id || "";
-    const figmaLink = fileKey && nodeId 
+    const figmaUrl = fileKey && nodeId 
       ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
       : "";
     
     tagsSheet.appendRow([
       new Date().toISOString(),
       data.fileName || "Unknown",
-      figmaLink,
+      "", // Placeholder for link - we'll add formula below
       nodeId,
       tag.node_name || "",
       tag.node_type || "",
@@ -281,6 +283,12 @@ function syncTags(data) {
       JSON.stringify(tag.properties || {}),
       tag.tagged_at || ""
     ]);
+    
+    // Add HYPERLINK formula to make it clickable
+    if (figmaUrl) {
+      tagsSheet.getRange(rowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+    }
+    rowIndex++;
   });
   
   // ─── Sync Screen Assignments Tab ────────────────────────────────────────────
@@ -309,23 +317,31 @@ function syncTags(data) {
   
   // Append all screen frames
   const screenFrames = data.screenFrames || [];
+  let screenRowIndex = 2; // Start from row 2 (after header)
+  
   screenFrames.forEach(screen => {
     // Construct Figma deep link
     const nodeId = screen.node_id || "";
-    const figmaLink = fileKey && nodeId 
+    const figmaUrl = fileKey && nodeId 
       ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
       : "";
     
     screensSheet.appendRow([
       new Date().toISOString(),
       data.fileName || "Unknown",
-      figmaLink,
+      "", // Placeholder for link - we'll add formula below
       nodeId,
       screen.node_name || "",
       screen.node_type || "",
       screen.screen_name || "",
       true // Assigned checkbox (true because these are assigned frames)
     ]);
+    
+    // Add HYPERLINK formula to make it clickable
+    if (figmaUrl) {
+      screensSheet.getRange(screenRowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+    }
+    screenRowIndex++;
   });
   
   return ContentService.createTextOutput(JSON.stringify({
