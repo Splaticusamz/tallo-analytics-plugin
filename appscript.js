@@ -15,6 +15,18 @@ const API_TOKEN = "tallo_analytics_plugin_secure_token_2024_xyz789";
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
+// Append a row and reset formatting so it doesn't inherit header styles
+function appendRowClean(sheet, rowData) {
+  sheet.appendRow(rowData);
+  const newRow = sheet.getLastRow();
+  const range = sheet.getRange(newRow, 1, 1, rowData.length);
+  range.setFontWeight("normal")
+       .setFontStyle("normal")
+       .setBackground(null)
+       .setFontColor(null)
+       .setFontSize(10);
+}
+
 // Issue 6: Auto-create sheets with headers if they don't exist
 function getOrCreateSheet(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -201,7 +213,7 @@ function addCustomEntry(data) {
   
   // Append new row: type, name, category, description, props
   const props = data.props ? data.props.join(", ") : "";
-  customSheet.appendRow([
+  appendRowClean(customSheet, [
     data.type,
     data.name,
     data.category || "",
@@ -246,7 +258,7 @@ function logChange(data) {
   const historySheet = getOrCreateSheet(HISTORY_TAB, ["Timestamp", "File Name", "Node ID", "Node Name", "Action", "Field", "Old Value", "New Value"]);
   
   // Append: Timestamp | File Name | Node ID | Node Name | Action | Field | Old Value | New Value
-  historySheet.appendRow([
+  appendRowClean(historySheet, [
     new Date().toISOString(),
     data.fileName || "Unknown",
     data.nodeId || "",
@@ -343,7 +355,7 @@ function syncTags(data) {
       }
     } else {
       // Insert new row
-      tagsSheet.appendRow(rowData);
+      appendRowClean(tagsSheet, rowData);
       const newRowNum = tagsSheet.getLastRow();
       
       // Set Figma link formula
@@ -435,7 +447,7 @@ function syncTags(data) {
       }
     } else {
       // Insert new row
-      screensSheet.appendRow(rowData);
+      appendRowClean(screensSheet, rowData);
       const newRowNum = screensSheet.getLastRow();
       
       // Set Figma link formula
@@ -474,7 +486,7 @@ function syncTags(data) {
     ]);
     
     changes.forEach(change => {
-      historySheet.appendRow([
+      appendRowClean(historySheet, [
         new Date().toISOString(),
         change.fileName || "Unknown",
         change.nodeId || "",
