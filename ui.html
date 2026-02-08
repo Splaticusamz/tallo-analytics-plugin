@@ -53,16 +53,17 @@
   }
   .tab {
     flex: 1;
-    padding: 10px 8px;
+    padding: 10px 4px;
     text-align: center;
     cursor: pointer;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: var(--text-muted);
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
+    white-space: nowrap;
   }
   .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
   .tab.active {
@@ -804,6 +805,8 @@ let customProps = []; // { key, type, value_hint }
 
 function init() {
   const screenSel = document.getElementById("screen-select");
+  // Clear existing options (keep the first placeholder)
+  screenSel.innerHTML = '<option value="">— Select screen —</option>';
   // Group screens by feature
   const grouped = {};
   SCREENS.forEach(s => {
@@ -824,6 +827,8 @@ function init() {
   });
 
   const catSel = document.getElementById("category-select");
+  // Clear existing options (keep the first placeholder)
+  catSel.innerHTML = '<option value="">— All categories —</option>';
   CATEGORIES.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c;
@@ -1021,7 +1026,7 @@ function bindCopyBtn(id, textFn) {
 // SELECTION HANDLING (messages from Figma)
 // ═══════════════════════════════════════════════════════════════════════
 
-window.onmessage = (event) => {
+window.onmessage = async (event) => {
   const msg = event.data.pluginMessage;
   if (!msg) return;
 
@@ -1100,12 +1105,10 @@ window.onmessage = (event) => {
   }
 
   if (msg.type === "sync-data") {
-    // Sync all tags to Google Sheets
     await syncTagsToSheet(msg.tags, msg.fileName);
   }
 
   if (msg.type === "log-change") {
-    // Log change to Google Sheets
     await logChange(
       msg.action,
       msg.nodeId,
@@ -1117,7 +1120,6 @@ window.onmessage = (event) => {
   }
 
   if (msg.type === "screen-assignment") {
-    // Update screen frame assignment UI
     const input = document.getElementById("screen-frame-input");
     const currentDiv = document.getElementById("screen-frame-current");
     const currentName = document.getElementById("screen-frame-current-name");
@@ -1133,6 +1135,15 @@ window.onmessage = (event) => {
       currentDiv.style.display = "none";
       clearBtn.style.display = "none";
     }
+  }
+
+  if (msg.type === "api-url-loaded") {
+    apiUrl = msg.url;
+    if (apiUrl) {
+      document.getElementById("api-url-input").value = apiUrl;
+      await loadTaxonomyFromAPI();
+    }
+    updateTaxonomyStatus();
   }
 };
 
@@ -1481,7 +1492,7 @@ document.getElementById("paste-tag-btn").addEventListener("click", () => {
 // VERSION CONTROL — Change History & Sync
 // ═══════════════════════════════════════════════════════════════════════
 
-async function logChange(action, nodeId, nodeName, field, oldValue, newValue) {
+async function logChange(changeAction, nodeId, nodeName, field, oldValue, newValue) {
   if (!apiUrl) return; // Silently skip if API not configured
   
   try {
@@ -1489,10 +1500,10 @@ async function logChange(action, nodeId, nodeName, field, oldValue, newValue) {
       method: "POST",
       body: JSON.stringify({
         action: "logChange",
-        fileName: "Figma File", // Figma plugin doesn't have access to file name
+        fileName: "Figma File",
         nodeId: nodeId,
         nodeName: nodeName,
-        action: action,
+        changeAction: changeAction,
         field: field,
         oldValue: oldValue || "",
         newValue: newValue || ""
@@ -2010,30 +2021,6 @@ document.getElementById("custom-entry-modal").addEventListener("click", (e) => {
     closeCustomEntryModal();
   }
 });
-
-// ═══════════════════════════════════════════════════════════════════════
-// MESSAGE HANDLERS — Extended for settings
-// ═══════════════════════════════════════════════════════════════════════
-
-// Extend the existing window.onmessage handler
-const originalOnMessage = window.onmessage;
-window.onmessage = async (event) => {
-  const msg = event.data.pluginMessage;
-  if (!msg) return;
-  
-  // Handle API URL responses
-  if (msg.type === "api-url-loaded") {
-    apiUrl = msg.url;
-    if (apiUrl) {
-      document.getElementById("api-url-input").value = apiUrl;
-      await loadTaxonomyFromAPI();
-    }
-    updateTaxonomyStatus();
-  }
-  
-  // Call original handler
-  if (originalOnMessage) originalOnMessage(event);
-};
 
 // ═══ Boot ═══
 init();
