@@ -1586,35 +1586,33 @@ document.getElementById("clear-screen-frame-btn").addEventListener("click", () =
 
 // Render screen frames list
 // Cleanup orphaned screen frame assignments after taxonomy refresh
-// Asks code.js to scan all screen frames, then removes any not in current SCREENS
-let pendingOrphanCleanup = false;
-
 function cleanupOrphanedScreenFrames() {
-  if (SCREENS.length === 0) {
-    // If sheet returned no screens, clear ALL assignments
-    parent.postMessage({ pluginMessage: { type: "clear-all-screen-frames" } }, "*");
-    return;
-  }
-  // Flag that next screen-frames-results should trigger orphan check
-  pendingOrphanCleanup = true;
+  // Trigger a scan — renderScreenFrames will handle orphan removal
   parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
 }
 
+// Track if we're currently in a cleanup cycle to avoid infinite loops
+let isCleaningOrphans = false;
+
 function renderScreenFrames(results) {
-  // Check for orphans if cleanup was requested
-  if (pendingOrphanCleanup) {
-    pendingOrphanCleanup = false;
+  // Always check for orphans when SCREENS has been loaded from API
+  // (taxonomyData is set when API has been called at least once)
+  if (taxonomyData && !isCleaningOrphans && results.length > 0) {
+    // If taxonomy loaded but SCREENS is empty, ALL assignments are orphans
+    // If SCREENS has data, only assignments not in SCREENS are orphans
     const validNames = new Set(SCREENS.map(s => s.name));
     const orphanIds = results
-      .filter(r => !validNames.has(r.screenName))
+      .filter(r => SCREENS.length === 0 || !validNames.has(r.screenName))
       .map(r => r.id);
     
     if (orphanIds.length > 0) {
+      isCleaningOrphans = true;
       parent.postMessage({ pluginMessage: { type: "clear-screen-frames", nodeIds: orphanIds } }, "*");
       showToast(`Removing ${orphanIds.length} orphaned screen assignment${orphanIds.length > 1 ? 's' : ''}...`);
       return; // Will re-render after clear completes
     }
   }
+  isCleaningOrphans = false;
 
   const list = document.getElementById("screens-list");
   const empty = document.getElementById("screens-empty");
