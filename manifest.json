@@ -6,6 +6,7 @@
   "capabilities": ["inspect"],
   "enableProposedApi": false,
   "editorType": ["figma", "dev"],
+  "documentAccess": "dynamic-page",
   "ui": "ui.html",
   "relaunchButtons": [
     {
