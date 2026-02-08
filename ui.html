@@ -532,12 +532,8 @@
     📊 Tagged Components
   </div>
   
-  <div style="display:flex;gap:8px;margin-bottom:12px;">
-    <button class="btn btn-secondary btn-sm" id="scan-btn" style="flex:1;">🔍 Scan Page</button>
-    <button class="btn btn-secondary btn-sm" id="export-btn" style="flex:1;">📥 Export JSON</button>
-  </div>
   <div style="margin-bottom:12px;">
-    <button class="btn btn-primary btn-sm" id="sync-sheet-btn" style="width:100%;">☁️ Sync to Sheet</button>
+    <button class="btn btn-secondary btn-sm" id="scan-btn" style="width:100%;">🔍 Scan Page</button>
   </div>
   <div class="audit-count" id="audit-count" style="display:none;">
     <div class="number" id="audit-number">0</div>
@@ -1624,21 +1620,21 @@ document.getElementById("scan-screens-btn").addEventListener("click", () => {
   setTimeout(() => hideLoading(), 3000);
 });
 
-// Export
-document.getElementById("export-btn").addEventListener("click", () => {
-  parent.postMessage({ pluginMessage: { type: "export-all" } }, "*");
-});
-
-// Sync to Sheet
-document.getElementById("sync-sheet-btn").addEventListener("click", async () => {
-  if (!apiUrl) {
-    showToast("Please configure API URL in Settings first", true);
-    return;
-  }
-  
-  // Request all tags from Figma
-  parent.postMessage({ pluginMessage: { type: "sync-to-sheet" } }, "*");
-});
+// Queued for deletion - Export JSON and Sync to Sheet buttons removed (auto-sync now handles syncing)
+// 
+// document.getElementById("export-btn").addEventListener("click", () => {
+//   parent.postMessage({ pluginMessage: { type: "export-all" } }, "*");
+// });
+// 
+// document.getElementById("sync-sheet-btn").addEventListener("click", async () => {
+//   if (!apiUrl) {
+//     showToast("Please configure API URL in Settings first", true);
+//     return;
+//   }
+//   
+//   // Request all tags from Figma
+//   parent.postMessage({ pluginMessage: { type: "sync-to-sheet" } }, "*");
+// });
 
 // Set screen frame
 document.getElementById("set-screen-frame-btn").addEventListener("click", () => {
