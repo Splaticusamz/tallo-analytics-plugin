@@ -2124,9 +2124,8 @@ async function loadTaxonomyFromAPI() {
       customScreensList = data.customScreens.filter(s => typeof s === 'string' && s.trim());
     }
     
-    // Merge with hardcoded data
-    if (data.screens && data.screens.length > 0) {
-      // Replace SCREENS with fetched data (now as objects with name and category)
+    // Replace with sheet data (clear hardcoded fallback when API is connected)
+    if (data.screens) {
       SCREENS.length = 0;
       const validScreens = data.screens.filter(s => {
         // Handle both object format { name, category } and old string format
@@ -2151,8 +2150,7 @@ async function loadTaxonomyFromAPI() {
       SCREENS.push(...validScreens);
     }
     
-    if (data.events && data.events.length > 0) {
-      // Replace EVENTS with fetched data (filter out invalid entries)
+    if (data.events) {
       EVENTS.length = 0;
       const validEvents = data.events.filter(e => e && typeof e.event === 'string' && e.event.trim());
       EVENTS.push(...validEvents);
