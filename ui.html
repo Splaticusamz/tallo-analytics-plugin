@@ -569,6 +569,27 @@
     ⚙️ Settings
   </div>
   
+  <!-- File URL Configuration -->
+  <div style="margin-bottom:16px;">
+    <div class="status-bar" style="margin-bottom:8px;">
+      <div class="status-text"><strong>🔗 Figma File URL</strong></div>
+    </div>
+    
+    <div class="field">
+      <label>File URL (for deep links)</label>
+      <input type="text" id="figma-url-input" placeholder="https://www.figma.com/design/..." />
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+        Paste any link to this file (use Share button). We'll extract the file key for generating component links.
+      </div>
+    </div>
+    
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="save-figma-url-btn">💾 Save File URL</button>
+    </div>
+    
+    <div id="figma-url-status" style="font-size:11px;margin-top:8px;padding:8px;border-radius:var(--radius-sm);display:none;"></div>
+  </div>
+  
   <!-- API Configuration -->
   <div style="margin-bottom:16px;">
     <div class="status-bar" style="margin-bottom:8px;">
@@ -1168,6 +1189,17 @@ window.onmessage = async (event) => {
     updateTaxonomyStatus();
   }
 
+  if (msg.type === "figma-filekey-loaded") {
+    figmaFileKey = msg.fileKey;
+    if (figmaFileKey) {
+      const statusEl = document.getElementById("figma-url-status");
+      statusEl.style.display = "block";
+      statusEl.style.background = "var(--cat-nav-dim)";
+      statusEl.style.color = "var(--cat-nav)";
+      statusEl.textContent = `✅ File key loaded: ${figmaFileKey}`;
+    }
+  }
+
   if (msg.type === "screen-assignment") {
     const select = document.getElementById("screen-frame-select");
     const currentDiv = document.getElementById("screen-frame-current");
@@ -1605,6 +1637,38 @@ function showToast(msg, isError) {
 
 let apiUrl = null;
 let taxonomyData = null;
+let figmaFileKey = null;
+
+// Save Figma file URL and extract fileKey
+document.getElementById("save-figma-url-btn").addEventListener("click", () => {
+  const url = document.getElementById("figma-url-input").value.trim();
+  if (!url) {
+    showToast("Please enter a Figma file URL", true);
+    return;
+  }
+  
+  // Extract fileKey from various Figma URL formats
+  // Examples:
+  // https://www.figma.com/design/Vh8DowDkYMODh6EReLLKQY/...
+  // https://www.figma.com/file/Vh8DowDkYMODh6EReLLKQY/...
+  const match = url.match(/figma\.com\/(design|file)\/([a-zA-Z0-9]+)/);
+  
+  if (!match) {
+    showToast("Invalid Figma URL format", true);
+    return;
+  }
+  
+  figmaFileKey = match[2];
+  parent.postMessage({ pluginMessage: { type: "save-figma-filekey", fileKey: figmaFileKey } }, "*");
+  
+  const statusEl = document.getElementById("figma-url-status");
+  statusEl.style.display = "block";
+  statusEl.style.background = "var(--cat-nav-dim)";
+  statusEl.style.color = "var(--cat-nav)";
+  statusEl.textContent = `✅ File key saved: ${figmaFileKey}`;
+  
+  showToast("File key saved!");
+});
 
 // Save API URL to plugin storage
 document.getElementById("save-api-url-btn").addEventListener("click", async () => {
@@ -1640,6 +1704,11 @@ document.getElementById("refresh-taxonomy-btn").addEventListener("click", async 
 // Load API URL from storage on init
 async function loadAPIUrlFromStorage() {
   parent.postMessage({ pluginMessage: { type: "get-api-url" } }, "*");
+}
+
+// Load Figma fileKey from storage on init
+async function loadFileKeyFromStorage() {
+  parent.postMessage({ pluginMessage: { type: "get-figma-filekey" } }, "*");
 }
 
 // Fetch taxonomy from API
@@ -2066,6 +2135,7 @@ document.getElementById("custom-entry-modal").addEventListener("click", (e) => {
 // ═══ Boot ═══
 init();
 loadAPIUrlFromStorage();
+loadFileKeyFromStorage();
 updateTaxonomyStatus();
 </script>
 </body>

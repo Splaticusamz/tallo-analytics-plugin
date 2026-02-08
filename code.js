@@ -219,6 +219,18 @@ figma.ui.onmessage = (msg) => {
     });
   }
 
+  if (msg.type === "save-figma-filekey") {
+    figma.clientStorage.setAsync("figmaFileKey", msg.fileKey).then(() => {
+      figma.notify("✅ File key saved");
+    });
+  }
+
+  if (msg.type === "get-figma-filekey") {
+    figma.clientStorage.getAsync("figmaFileKey").then((fileKey) => {
+      figma.ui.postMessage({ type: "figma-filekey-loaded", fileKey: fileKey || null });
+    });
+  }
+
   if (msg.type === "set-screen-frame") {
     const sel = figma.currentPage.selection;
     if (sel.length !== 1) {
@@ -325,23 +337,19 @@ figma.ui.onmessage = (msg) => {
     }
     walkExport(figma.currentPage);
     
-    // Debug: Log fileKey
-    console.log("figma.fileKey:", figma.fileKey);
-    console.log("figma.root.name:", figma.root.name);
-    
-    // Check if file has a fileKey (only available for cloud-saved files)
-    if (!figma.fileKey) {
-      figma.notify("⚠️ File must be saved to Figma cloud to generate deep links. fileKey is: " + (figma.fileKey === null ? "null" : "undefined"), { timeout: 5000 });
-    } else {
-      figma.notify("✅ FileKey found: " + figma.fileKey, { timeout: 3000 });
-    }
-    
-    figma.ui.postMessage({ 
-      type: "sync-data", 
-      tags: results,
-      screenFrames: screenFrames,
-      fileName: figma.root.name,
-      fileKey: figma.fileKey || ""
+    // Get stored fileKey from clientStorage (since figma.fileKey is unavailable in plugin context)
+    figma.clientStorage.getAsync("figmaFileKey").then((storedFileKey) => {
+      if (!storedFileKey) {
+        figma.notify("⚠️ Please configure your Figma file URL in Settings to enable deep links", { timeout: 4000 });
+      }
+      
+      figma.ui.postMessage({ 
+        type: "sync-data", 
+        tags: results,
+        screenFrames: screenFrames,
+        fileName: figma.root.name,
+        fileKey: storedFileKey || ""
+      });
     });
   }
 
