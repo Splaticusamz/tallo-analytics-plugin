@@ -86,7 +86,7 @@ function getTaxonomy() {
     event: row[0],
     cat: row[1],
     desc: row[2] || "",
-    props: row[3] ? row[3].split(",").map(p => p.trim()) : []
+    props: row[3] && String(row[3]).trim() ? String(row[3]).split(",").map(p => p.trim()) : []
   })).filter(e => e.event);
   
   // Read Properties tab (columns: property_name, type)
@@ -111,7 +111,7 @@ function getTaxonomy() {
         event: row[1],
         cat: row[2] || "Custom",
         desc: row[3] || "",
-        props: row[4] ? row[4].split(",").map(p => p.trim()) : [],
+        props: row[4] && String(row[4]).trim() ? String(row[4]).split(",").map(p => p.trim()) : [],
         isCustom: true
       });
     }

@@ -857,6 +857,8 @@ function init() {
     screenFrameSel.innerHTML = '<option value="">— Select screen —</option>';
     const grouped = {};
     SCREENS.forEach(s => {
+      // Validate that s is a string before splitting
+      if (typeof s !== 'string' || !s) return;
       const [feature] = s.split("__");
       if (!grouped[feature]) grouped[feature] = [];
       grouped[feature].push(s);
@@ -1732,15 +1734,17 @@ async function loadTaxonomyFromAPI() {
     
     // Merge with hardcoded data
     if (data.screens && data.screens.length > 0) {
-      // Replace SCREENS with fetched data
+      // Replace SCREENS with fetched data (filter out invalid entries)
       SCREENS.length = 0;
-      SCREENS.push(...data.screens);
+      const validScreens = data.screens.filter(s => typeof s === 'string' && s.trim());
+      SCREENS.push(...validScreens);
     }
     
     if (data.events && data.events.length > 0) {
-      // Replace EVENTS with fetched data
+      // Replace EVENTS with fetched data (filter out invalid entries)
       EVENTS.length = 0;
-      EVENTS.push(...data.events);
+      const validEvents = data.events.filter(e => e && typeof e.event === 'string' && e.event.trim());
+      EVENTS.push(...validEvents);
     }
     
     if (data.propertyTypes && Object.keys(data.propertyTypes).length > 0) {
