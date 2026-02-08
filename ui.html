@@ -1526,12 +1526,20 @@ document.querySelectorAll(".tab").forEach(tab => {
     tab.classList.add("active");
     document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
     
-    // Auto-scan node lists when switching to relevant tabs
+    // Auto-scan and sync when switching to relevant tabs
     if (tab.dataset.tab === "audit") {
+      showLoading("Scanning tagged components...");
       parent.postMessage({ pluginMessage: { type: "scan-page" } }, "*");
+      // Also sync to sheet
+      parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
+      setTimeout(() => hideLoading(), 3000);
     }
     if (tab.dataset.tab === "screens") {
+      showLoading("Scanning screen frames...");
       parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+      // Also sync to sheet
+      parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
+      setTimeout(() => hideLoading(), 3000);
     }
   });
 });
