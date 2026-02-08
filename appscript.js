@@ -235,6 +235,11 @@ function syncTags(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const fileKey = data.fileKey || "";
   
+  // Log to help debug
+  Logger.log("Received fileKey: " + fileKey);
+  Logger.log("Received tags count: " + (data.tags ? data.tags.length : 0));
+  Logger.log("Received screenFrames count: " + (data.screenFrames ? data.screenFrames.length : 0));
+  
   // ─── Sync Tags Tab ───────────────────────────────────────────────────────────
   let tagsSheet = ss.getSheetByName("Tags");
   if (!tagsSheet) {
@@ -287,6 +292,8 @@ function syncTags(data) {
     // Add HYPERLINK formula to make it clickable
     if (figmaUrl) {
       tagsSheet.getRange(rowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+    } else {
+      tagsSheet.getRange(rowIndex, 3).setValue("(File not saved to cloud)");
     }
     rowIndex++;
   });
@@ -340,6 +347,8 @@ function syncTags(data) {
     // Add HYPERLINK formula to make it clickable
     if (figmaUrl) {
       screensSheet.getRange(screenRowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+    } else {
+      screensSheet.getRange(screenRowIndex, 3).setValue("(File not saved to cloud)");
     }
     screenRowIndex++;
   });

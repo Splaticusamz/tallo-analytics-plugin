@@ -325,12 +325,17 @@ figma.ui.onmessage = (msg) => {
     }
     walkExport(figma.currentPage);
     
+    // Check if file has a fileKey (only available for cloud-saved files)
+    if (!figma.fileKey) {
+      figma.notify("⚠️ File must be saved to Figma cloud to generate deep links", { timeout: 3000 });
+    }
+    
     figma.ui.postMessage({ 
       type: "sync-data", 
       tags: results,
       screenFrames: screenFrames,
       fileName: figma.root.name,
-      fileKey: figma.fileKey
+      fileKey: figma.fileKey || ""
     });
   }
 
