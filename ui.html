@@ -1135,7 +1135,7 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "sync-data") {
-    await syncTagsToSheet(msg.tags, msg.fileName);
+    await syncTagsToSheet(msg.tags, msg.fileName, msg.fileKey);
   }
 
   if (msg.type === "log-change") {
@@ -1529,7 +1529,7 @@ async function logChange(changeAction, nodeId, nodeName, field, oldValue, newVal
   }
 }
 
-async function syncTagsToSheet(tags, fileName) {
+async function syncTagsToSheet(tags, fileName, fileKey) {
   if (!apiUrl) {
     showToast("Please configure API URL in Settings first", true);
     return;
@@ -1543,6 +1543,7 @@ async function syncTagsToSheet(tags, fileName) {
       body: JSON.stringify({
         action: "syncTags",
         fileName: fileName || "Figma File",
+        fileKey: fileKey || "",
         tags: tags
       })
     });

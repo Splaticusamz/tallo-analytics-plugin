@@ -313,7 +313,8 @@ figma.ui.onmessage = (msg) => {
     figma.ui.postMessage({ 
       type: "sync-data", 
       tags: results,
-      fileName: figma.root.name
+      fileName: figma.root.name,
+      fileKey: figma.fileKey
     });
   }
 

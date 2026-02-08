@@ -241,6 +241,7 @@ function syncTags(data) {
     tagsSheet.appendRow([
       "Synced At",
       "File Name",
+      "Figma Link",
       "Node ID",
       "Node Name",
       "Node Type",
@@ -259,11 +260,20 @@ function syncTags(data) {
   
   // Append all tags
   const tags = data.tags || [];
+  const fileKey = data.fileKey || "";
+  
   tags.forEach(tag => {
+    // Construct Figma deep link
+    const nodeId = tag.node_id || "";
+    const figmaLink = fileKey && nodeId 
+      ? `https://figma.com/file/${fileKey}?node-id=${nodeId.replace(':', '-')}`
+      : "";
+    
     tagsSheet.appendRow([
       new Date().toISOString(),
       data.fileName || "Unknown",
-      tag.node_id || "",
+      figmaLink,
+      nodeId,
       tag.node_name || "",
       tag.node_type || "",
       tag.event || "",
