@@ -171,11 +171,12 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "select-node") {
-    const node = figma.currentPage.findOne((n) => n.id === msg.nodeId);
-    if (node) {
-      figma.currentPage.selection = [node];
-      figma.viewport.scrollAndZoomIntoView([node]);
-    }
+    figma.currentPage.findOneAsync((n) => n.id === msg.nodeId).then((node) => {
+      if (node) {
+        figma.currentPage.selection = [node];
+        figma.viewport.scrollAndZoomIntoView([node]);
+      }
+    });
   }
 
   if (msg.type === "export-all") {
@@ -354,14 +355,15 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "get-screen-assignment") {
-    const node = figma.getNodeById(msg.nodeId);
-    if (node) {
-      const screenName = node.getPluginData(SCREEN_FRAME_KEY);
-      figma.ui.postMessage({ 
-        type: "screen-assignment", 
-        screenName: screenName || null
-      });
-    }
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
+      if (node) {
+        const screenName = node.getPluginData(SCREEN_FRAME_KEY);
+        figma.ui.postMessage({ 
+          type: "screen-assignment", 
+          screenName: screenName || null
+        });
+      }
+    });
   }
 
   if (msg.type === "close") {
