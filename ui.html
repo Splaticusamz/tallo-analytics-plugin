@@ -983,9 +983,14 @@ function showSuggestedProps(eventName) {
     container.style.display = "none";
     return;
   }
+  const validProps = ev.props.filter(p => p && p.trim() && !/^[-_]+$/.test(p.trim()));
+  if (validProps.length === 0) {
+    container.style.display = "none";
+    return;
+  }
   container.style.display = "flex";
   container.innerHTML = "";
-  ev.props.forEach(propName => {
+  validProps.forEach(propName => {
     const chip = document.createElement("div");
     chip.className = "suggested-chip";
     if (customProps.some(p => p.key === propName)) chip.classList.add("added");
