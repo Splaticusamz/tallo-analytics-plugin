@@ -757,6 +757,328 @@
     
     <div id="api-status" style="font-size:11px;margin-top:8px;padding:8px;border-radius:var(--radius-sm);display:none;"></div>
   </div>
+
+  <!-- Setup Guide (collapsible) -->
+  <div style="margin-bottom:16px;">
+    <button id="setup-guide-toggle" style="width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:var(--text);font-size:13px;font-weight:600;transition:all 0.2s;">
+      <span>📖 Setup Guide — Google Apps Script</span>
+      <span id="setup-guide-arrow" style="transition:transform 0.2s;">▶</span>
+    </button>
+    
+    <div id="setup-guide-content" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:14px;background:var(--bg-card);font-size:12px;line-height:1.6;color:var(--text-secondary);">
+      
+      <!-- Step 1 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 1 — Create the Google Sheet</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>Go to <span style="color:var(--accent);cursor:pointer;" onclick="window.open('https://sheets.google.com')">sheets.google.com</span> and create a new spreadsheet</li>
+          <li>Name it something like <strong>Tallo Analytics Taxonomy</strong></li>
+          <li>Create these tabs (exact names): <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Screens</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Events</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Properties</code></li>
+          <li><strong>Screens</strong> tab headers (row 1): <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">screen_name</code> | <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">category</code></li>
+          <li><strong>Events</strong> tab headers (row 1): <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">event</code> | <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">category</code> | <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">description</code> | <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">props</code></li>
+          <li><strong>Properties</strong> tab headers (row 1): <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">property_name</code> | <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">type</code></li>
+        </ol>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">💡 The plugin will auto-create <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Custom</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">History</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Tags</code>, and <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Screen Assignments</code> tabs on first sync.</div>
+      </div>
+      
+      <!-- Step 2 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 2 — Add the Apps Script</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>In your spreadsheet, go to <strong>Extensions → Apps Script</strong></li>
+          <li>Delete any existing code in <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Code.gs</code></li>
+          <li>Paste the code below (click Copy):</li>
+        </ol>
+        
+        <div style="position:relative;margin-top:8px;">
+          <button id="copy-appscript-btn" style="position:absolute;top:6px;right:6px;background:var(--accent);color:white;border:none;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;z-index:1;transition:all 0.2s;">📋 Copy</button>
+          <pre id="appscript-code-block" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:10px;line-height:1.5;overflow-x:auto;max-height:200px;overflow-y:auto;margin:0;white-space:pre;font-family:'SF Mono',Monaco,Menlo,monospace;color:var(--text-secondary);tab-size:2;">// Tallo Analytics Plugin — Google Apps Script
+// Deploy as web app: "Execute as: Me" / "Who has access: Anyone"
+
+// ─── Configuration ──────────────────────────────────────────────
+const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+const SCREENS_TAB = "Screens";
+const EVENTS_TAB = "Events";
+const PROPERTIES_TAB = "Properties";
+const CUSTOM_TAB = "Custom";
+const HISTORY_TAB = "History";
+
+// ⚠️ CHANGE THIS to a secure random token — must match plugin settings
+const API_TOKEN = "CHANGE_ME_TO_A_RANDOM_STRING";
+
+// ─── Helpers ────────────────────────────────────────────────────
+function appendRowClean(sheet, rowData) {
+  sheet.appendRow(rowData);
+  const r = sheet.getRange(sheet.getLastRow(), 1, 1, rowData.length);
+  r.setFontWeight("normal").setFontStyle("normal")
+   .setBackground(null).setFontColor(null).setFontSize(10);
+}
+
+function getOrCreateSheet(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers &amp;&amp; headers.length) sheet.appendRow(headers);
+  }
+  return sheet;
+}
+
+function authCheck(token) {
+  if (token !== API_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, error: "Unauthorized"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  return null;
+}
+
+// ─── GET handler ────────────────────────────────────────────────
+function doGet(e) {
+  const deny = authCheck(e.parameter.token);
+  if (deny) return deny;
+  if (e.parameter.action === "getTaxonomy") return getTaxonomy();
+  return ContentService.createTextOutput(JSON.stringify({
+    name: "Tallo Analytics API", status: "ready"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── POST handler ───────────────────────────────────────────────
+function doPost(e) {
+  try {
+    const d = JSON.parse(e.postData.contents);
+    const deny = authCheck(d.token);
+    if (deny) return deny;
+    if (d.action === "addCustom") return addCustomEntry(d);
+    if (d.action === "deleteCustom") return deleteCustomEntry(d);
+    if (d.action === "logChange") return logChange(d);
+    if (d.action === "syncTags") return syncTags(d);
+    return ContentService.createTextOutput(JSON.stringify({
+      error: "Invalid action"
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    Logger.log(err); Logger.log(err.stack);
+    return ContentService.createTextOutput(JSON.stringify({
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ─── Taxonomy ───────────────────────────────────────────────────
+function getTaxonomy() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sSheet = getOrCreateSheet(SCREENS_TAB, ["screen_name","category"]);
+  const screens = sSheet.getDataRange().getValues().slice(1)
+    .filter(r =&gt; r[0] &amp;&amp; String(r[0]).trim())
+    .map(r =&gt; ({name:String(r[0]).trim(), category:r[1]?String(r[1]).trim():"Other"}));
+
+  const eSheet = getOrCreateSheet(EVENTS_TAB, ["event","category","description","props"]);
+  const events = eSheet.getDataRange().getValues().slice(1)
+    .map(r =&gt; ({event:r[0], cat:r[1], desc:r[2]||"",
+      props:r[3]&amp;&amp;String(r[3]).trim()?String(r[3]).split(",").map(p=&gt;p.trim()):[]
+    })).filter(e =&gt; e.event);
+
+  const pSheet = getOrCreateSheet(PROPERTIES_TAB, ["property_name","type"]);
+  const propertyTypes = {};
+  pSheet.getDataRange().getValues().slice(1).forEach(r =&gt; {
+    if (r[0]) propertyTypes[r[0]] = r[1]||"string";
+  });
+
+  const cSheet = getOrCreateSheet(CUSTOM_TAB, ["type","name","category","description","props","created_at"]);
+  const customScreens=[], customEvents=[];
+  cSheet.getDataRange().getValues().slice(1).forEach(r =&gt; {
+    if (r[0]==="screen" &amp;&amp; r[1] &amp;&amp; String(r[1]).trim())
+      customScreens.push({name:String(r[1]).trim(), category:"Custom", isCustom:true});
+    else if (r[0]==="event" &amp;&amp; r[1])
+      customEvents.push({event:r[1], cat:r[2]||"Custom", desc:r[3]||"",
+        props:r[4]&amp;&amp;String(r[4]).trim()?String(r[4]).split(",").map(p=&gt;p.trim()):[],
+        isCustom:true});
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({
+    screens:[...screens,...customScreens], events:[...events,...customEvents],
+    propertyTypes, customScreens:customScreens.map(s=&gt;s.name), customEvents
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── Custom Entries ─────────────────────────────────────────────
+function addCustomEntry(d) {
+  const sheet = getOrCreateSheet(CUSTOM_TAB, ["type","name","category","description","props","created_at"]);
+  const exists = sheet.getDataRange().getValues().slice(1).some(r=&gt;r[0]===d.type&amp;&amp;r[1]===d.name);
+  if (exists) return ContentService.createTextOutput(JSON.stringify({
+    success:false, error:"Entry already exists"
+  })).setMimeType(ContentService.MimeType.JSON);
+  appendRowClean(sheet,[d.type, d.name, d.category||"", d.description||"",
+    d.props?d.props.join(", "):"", new Date().toISOString()]);
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function deleteCustomEntry(d) {
+  const sheet = getOrCreateSheet(CUSTOM_TAB, ["type","name","category","description","props","created_at"]);
+  const all = sheet.getDataRange().getValues();
+  for (let i=1; i&lt;all.length; i++) {
+    if (all[i][0]===d.type &amp;&amp; all[i][1]===d.name) {
+      sheet.deleteRow(i+1);
+      return ContentService.createTextOutput(JSON.stringify({success:true}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({
+    success:false, error:"Not found"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── Change Log ─────────────────────────────────────────────────
+function logChange(d) {
+  const sheet = getOrCreateSheet(HISTORY_TAB,
+    ["Timestamp","File Name","Node ID","Node Name","Action","Field","Old Value","New Value"]);
+  appendRowClean(sheet,[new Date().toISOString(), d.fileName||"Unknown",
+    d.nodeId||"", d.nodeName||"", d.action||"", d.field||"", d.oldValue||"", d.newValue||""]);
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── Sync Tags ──────────────────────────────────────────────────
+function syncTags(d) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const fileKey = d.fileKey||"";
+
+  // Tags tab
+  const tSheet = getOrCreateSheet("Tags",
+    ["Synced At","File Name","Figma Link","Node ID","Node Name",
+     "Node Type","Event","Screen Name","Description","Properties","Tagged At"]);
+  const tData = tSheet.getDataRange().getValues();
+  const tMap = new Map();
+  for (let i=1; i&lt;tData.length; i++) if(tData[i][3]) tMap.set(tData[i][3], i+1);
+
+  const tags = d.tags||[], curIds = new Set();
+  tags.forEach(t =&gt; {
+    const nid = t.node_id||""; curIds.add(nid);
+    const url = fileKey&amp;&amp;nid
+      ? `https://www.figma.com/design/${fileKey}/?node-id=${nid.replace(':','-')}` : "";
+    const row = [new Date().toISOString(), d.fileName||"Unknown", "",
+      nid, t.node_name||"", t.node_type||"", t.event||"",
+      t.screen_name||"", t.description||"", JSON.stringify(t.properties||{}), t.tagged_at||""];
+    if (tMap.has(nid)) {
+      tSheet.getRange(tMap.get(nid),1,1,row.length).setValues([row]);
+      if(url) tSheet.getRange(tMap.get(nid),3).setFormula(`=HYPERLINK("${url}","Open in Figma")`);
+    } else {
+      appendRowClean(tSheet, row);
+      const nr = tSheet.getLastRow();
+      if(url) tSheet.getRange(nr,3).setFormula(`=HYPERLINK("${url}","Open in Figma")`);
+    }
+  });
+  const delRows=[];
+  for(const[nid,rn] of tMap) if(!curIds.has(nid)) delRows.push(rn);
+  delRows.sort((a,b)=&gt;b-a).forEach(r=&gt;tSheet.deleteRow(r));
+
+  // Screen Assignments tab
+  const saSheet = getOrCreateSheet("Screen Assignments",
+    ["Synced At","File Name","Figma Link","Node ID","Frame Name","Frame Type","Screen Name"]);
+  const saData = saSheet.getDataRange().getValues();
+  const saMap = new Map();
+  for(let i=1;i&lt;saData.length;i++) if(saData[i][3]) saMap.set(saData[i][3],i+1);
+
+  const frames=d.screenFrames||[], curSIds=new Set();
+  frames.forEach(s=&gt;{
+    const nid=s.node_id||""; curSIds.add(nid);
+    const url=fileKey&amp;&amp;nid
+      ?`https://www.figma.com/design/${fileKey}/?node-id=${nid.replace(':','-')}`:"";
+    const row=[new Date().toISOString(),d.fileName||"Unknown","",
+      nid,s.node_name||"",s.node_type||"",s.screen_name||""];
+    if(saMap.has(nid)){
+      saSheet.getRange(saMap.get(nid),1,1,row.length).setValues([row]);
+      if(url) saSheet.getRange(saMap.get(nid),3).setFormula(`=HYPERLINK("${url}","Open in Figma")`);
+    } else {
+      appendRowClean(saSheet,row);
+      const nr=saSheet.getLastRow();
+      if(url) saSheet.getRange(nr,3).setFormula(`=HYPERLINK("${url}","Open in Figma")`);
+    }
+  });
+  const saDel=[];
+  for(const[nid,rn] of saMap) if(!curSIds.has(nid)) saDel.push(rn);
+  saDel.sort((a,b)=&gt;b-a).forEach(r=&gt;saSheet.deleteRow(r));
+
+  // Log changes
+  if((d.changes||[]).length){
+    const hSheet=getOrCreateSheet(HISTORY_TAB,
+      ["Timestamp","File Name","Node ID","Node Name","Action","Field","Old Value","New Value"]);
+    d.changes.forEach(c=&gt;appendRowClean(hSheet,[new Date().toISOString(),
+      c.fileName||"Unknown",c.nodeId||"",c.nodeName||"",c.action||"",
+      c.field||"",c.oldValue||"",c.newValue||""]));
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({
+    success:true, count:tags.length, screenCount:frames.length,
+    changesLogged:(d.changes||[]).length
+  })).setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </div>
+      </div>
+      
+      <!-- Step 3 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 3 — Set Your API Token</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>In the pasted code, find this line near the top:<br>
+            <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">const API_TOKEN = "CHANGE_ME_TO_A_RANDOM_STRING";</code></li>
+          <li>Replace <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">CHANGE_ME_TO_A_RANDOM_STRING</code> with any password-like string you choose</li>
+          <li>Remember this token — you'll paste it in the <strong>API Token</strong> field above</li>
+        </ol>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">💡 Example: <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">my_tallo_token_2024_abc123</code> — anything hard to guess.</div>
+      </div>
+
+      <!-- Step 4 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 4 — Deploy as Web App</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>Click <strong>Deploy → New deployment</strong> (top-right blue button)</li>
+          <li>Click the ⚙️ gear icon next to "Select type" → choose <strong>Web app</strong></li>
+          <li>Set <strong>Description</strong> to anything (e.g. "Tallo v1")</li>
+          <li>Set <strong>Execute as:</strong> → <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Me</code></li>
+          <li>Set <strong>Who has access:</strong> → <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">Anyone</code></li>
+          <li>Click <strong>Deploy</strong></li>
+          <li>Google will ask to <strong>authorize</strong> — click <strong>Review Permissions</strong></li>
+        </ol>
+      </div>
+
+      <!-- Step 5 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 5 — Authorize the App</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>Select your Google account</li>
+          <li>You'll see a warning: <strong>"Google hasn't verified this app"</strong> — this is normal for personal scripts</li>
+          <li>Click <strong>Advanced</strong> (bottom-left)</li>
+          <li>Click <strong>Go to [your project name] (unsafe)</strong></li>
+          <li>Click <strong>Allow</strong> — this grants the script access to edit your spreadsheet</li>
+        </ol>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">🔒 The script only accesses your spreadsheet. It doesn't read email, files, or anything else.</div>
+      </div>
+
+      <!-- Step 6 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Step 6 — Copy the URL & Configure Plugin</div>
+        <ol style="margin:0;padding-left:20px;">
+          <li>After deploying, Google shows a <strong>Web app URL</strong> — copy it</li>
+          <li>It looks like: <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;font-size:10px;">https://script.google.com/macros/s/AKfy.../exec</code></li>
+          <li>Paste it in the <strong>Apps Script URL</strong> field above</li>
+          <li>Paste your token in the <strong>API Token</strong> field</li>
+          <li>Click <strong>💾 Save & Load Taxonomy</strong></li>
+          <li>If you see ✅ green — you're connected!</li>
+        </ol>
+      </div>
+
+      <!-- Updating -->
+      <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);">
+        <div style="font-weight:600;color:var(--text);margin-bottom:4px;font-size:11px;">⚠️ Updating the Script Later</div>
+        <div style="font-size:11px;">If you edit the Apps Script code, you must re-deploy for changes to take effect:<br>
+        <strong>Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy</strong><br>
+        The URL stays the same — no need to update the plugin settings.</div>
+      </div>
+      
+    </div>
+  </div>
   
   </div><!-- /settings-admin-view -->
   
@@ -2558,10 +2880,48 @@ document.getElementById("refresh-taxonomy-default-btn").addEventListener("click"
   await loadTaxonomyFromAPI();
 });
 
-// Setup guide link
+// Setup guide link — scroll to guide section
 document.getElementById("setup-guide-link").addEventListener("click", (e) => {
   e.preventDefault();
-  showToast("Check SHEET_SETUP.md in the plugin folder");
+  const content = document.getElementById("setup-guide-content");
+  const arrow = document.getElementById("setup-guide-arrow");
+  if (content.style.display === "none") {
+    content.style.display = "block";
+    arrow.style.transform = "rotate(90deg)";
+  }
+  content.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// Setup guide toggle
+document.getElementById("setup-guide-toggle").addEventListener("click", () => {
+  const content = document.getElementById("setup-guide-content");
+  const arrow = document.getElementById("setup-guide-arrow");
+  if (content.style.display === "none") {
+    content.style.display = "block";
+    arrow.style.transform = "rotate(90deg)";
+  } else {
+    content.style.display = "none";
+    arrow.style.transform = "rotate(0deg)";
+  }
+});
+
+// Copy Apps Script code
+document.getElementById("copy-appscript-btn").addEventListener("click", () => {
+  const codeBlock = document.getElementById("appscript-code-block");
+  // Decode HTML entities back to real code for clipboard
+  const tempEl = document.createElement("textarea");
+  tempEl.innerHTML = codeBlock.innerHTML;
+  let code = tempEl.textContent || tempEl.innerText;
+  // Clean up any extra whitespace from HTML rendering
+  code = code.replace(/\n{3,}/g, "\n\n");
+  
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById("copy-appscript-btn");
+    btn.textContent = "✅ Copied!";
+    setTimeout(() => { btn.textContent = "📋 Copy"; }, 2000);
+  }).catch(() => {
+    showToast("Copy failed — select the code manually", true);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
