@@ -635,6 +635,22 @@
     </div>
   </div>
   
+  <!-- Admin Password Modal (inline) -->
+  <div id="admin-password-modal" style="display:none;padding:16px 20px;">
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:24px;margin-bottom:4px;">🔐</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);">Enter Admin Password</div>
+    </div>
+    <div class="field">
+      <input type="password" id="admin-password-input" placeholder="Password" style="text-align:center;" />
+    </div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="btn btn-primary btn-sm" id="admin-password-submit">Unlock</button>
+      <button class="btn btn-secondary btn-sm" id="admin-password-cancel">Cancel</button>
+    </div>
+    <div id="admin-password-error" style="display:none;text-align:center;font-size:11px;color:var(--danger);margin-top:8px;">Incorrect password</div>
+  </div>
+
   <!-- Admin view (hidden by default) -->
   <div id="settings-admin-view" style="display:none;">
   
@@ -2318,15 +2334,45 @@ async function deleteCustomEntry(type, name) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function promptAdminPassword() {
-  const password = prompt("Enter admin password:");
-  if (password === ADMIN_PASSWORD) {
+  const modal = document.getElementById("admin-password-modal");
+  const input = document.getElementById("admin-password-input");
+  const errorEl = document.getElementById("admin-password-error");
+  const defaultView = document.getElementById("settings-default-view");
+  
+  // Show modal, hide default view
+  defaultView.style.display = "none";
+  modal.style.display = "block";
+  errorEl.style.display = "none";
+  input.value = "";
+  setTimeout(() => input.focus(), 50);
+}
+
+document.getElementById("admin-password-submit").addEventListener("click", () => {
+  const input = document.getElementById("admin-password-input");
+  const errorEl = document.getElementById("admin-password-error");
+  const modal = document.getElementById("admin-password-modal");
+  
+  if (input.value === ADMIN_PASSWORD) {
+    modal.style.display = "none";
     isAdminMode = true;
     updateSettingsView();
     showToast("🔓 Admin mode unlocked");
-  } else if (password !== null) {
-    showToast("Incorrect password", true);
+  } else {
+    errorEl.style.display = "block";
+    input.value = "";
+    input.focus();
   }
-}
+});
+
+document.getElementById("admin-password-cancel").addEventListener("click", () => {
+  document.getElementById("admin-password-modal").style.display = "none";
+  document.getElementById("settings-default-view").style.display = "block";
+});
+
+document.getElementById("admin-password-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("admin-password-submit").click();
+  if (e.key === "Escape") document.getElementById("admin-password-cancel").click();
+});
 
 function updateSettingsView() {
   const defaultView = document.getElementById("settings-default-view");
