@@ -1,6 +1,6 @@
 {
   "name": "Tallo Analytics Tagger",
-  "id": "tallo-analytics-tagger",
+  "id": "1602257330254093839",
   "api": "1.0.0",
   "main": "code.js",
   "capabilities": ["inspect"],
