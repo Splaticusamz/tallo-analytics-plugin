@@ -2045,8 +2045,17 @@ async function saveCustomScreen() {
     showToast("Custom screen added!");
     closeCustomEntryModal();
     
-    // Reload taxonomy to update counts
-    await loadTaxonomyFromAPI();
+    // Update taxonomy status counts
+    updateTaxonomyStatus();
+    updateCustomEntriesList();
+    
+    // Try to reload full taxonomy (optional - don't fail if this doesn't work)
+    try {
+      await loadTaxonomyFromAPI();
+    } catch (reloadErr) {
+      console.warn("Failed to reload taxonomy after adding custom screen:", reloadErr);
+      // Ignore - we already have the custom screen locally
+    }
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);
@@ -2117,8 +2126,17 @@ async function saveCustomEvent() {
     showToast("Custom event added!");
     closeCustomEntryModal();
     
-    // Reload taxonomy to update counts
-    await loadTaxonomyFromAPI();
+    // Update taxonomy status counts
+    updateTaxonomyStatus();
+    updateCustomEntriesList();
+    
+    // Try to reload full taxonomy (optional - don't fail if this doesn't work)
+    try {
+      await loadTaxonomyFromAPI();
+    } catch (reloadErr) {
+      console.warn("Failed to reload taxonomy after adding custom event:", reloadErr);
+      // Ignore - we already have the custom event locally
+    }
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);
