@@ -16,21 +16,23 @@ Create the following tabs (sheets) in your spreadsheet:
 
 **Columns:**
 - A: `screen_name`
+- B: `category`
 
 **Example data:**
 ```
-screen_name
-auth__splash
-auth__sign_in
-auth__create_account
-home__main
-career__hub
-profile__main
+screen_name              category
+auth__splash             Auth
+auth__sign_in            Auth
+auth__create_account     Auth
+home__main               Home
+career__hub              Career
+profile__main            Profile
 ```
 
 **Setup:**
-1. Paste the current 74 screens from `ui.html` lines 494-524
-2. Each screen should be on a new row
+1. Copy the screen names and add appropriate categories
+2. Categories group screens in the dropdown (e.g., "Auth", "Onboarding", "Profile", etc.)
+3. Custom screens will automatically appear in a "Custom" category at the top
 
 ### Tab 2: Events
 

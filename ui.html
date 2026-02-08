@@ -681,36 +681,84 @@
 // TAXONOMY DATA (extracted from the Tallo spreadsheet)
 // ═══════════════════════════════════════════════════════════════════════
 
+// Screens are now objects with { name, category } structure
+// This will be populated from the Google Sheet or use this as fallback
 const SCREENS = [
-  "auth__splash","auth__sign_in","auth__create_account","auth__email_signup","auth__logout",
-  "onboarding__dob","onboarding__terms","onboarding__groups","onboarding__interests",
-  "onboarding__education","onboarding__location","onboarding__pursuit","onboarding__complete",
-  "home__main",
-  "career__hub","career__explore","career__search","career__detail","career__compare",
-  "career__assessment","career__quiz","career__results",
-  "community_feed__home","community_feed__post_detail","community_feed__create_post",
-  "community_feed__edit_post","community_feed__group","community_feed__profile",
-  "community_groups__groups_list","community_groups__group_detail",
-  "community_groups__group_members","community_groups__group_select",
-  "jobs__list","jobs__detail",
-  "scholarships__landing","scholarships__list","scholarships__detail",
-  "learn__courses_list",
-  "applications__main",
-  "events__main",
-  "saved__main",
-  "search__main",
-  "profile__main","profile__bio","profile__education","profile__experience",
-  "profile__skills","profile__interests","profile__accomplishments","profile__activities",
-  "profile__birth_date","profile__status","profile__private_view","profile__other_user",
-  "profile__followers_list",
-  "notifications__main",
-  "user_settings__main","user_settings__name","user_settings__email","user_settings__phone",
-  "user_settings__security","user_settings__privacy","user_settings__blocked_users",
-  "user_settings__avatar","user_settings__help","user_settings__delete",
-  "navigation__tab_bar","navigation__sidebar","navigation__header",
-  "partner__avid",
-  "resume__builder",
-  "system__error","system__modal","system__webview","system__external"
+  { name: "auth__splash", category: "Auth" },
+  { name: "auth__sign_in", category: "Auth" },
+  { name: "auth__create_account", category: "Auth" },
+  { name: "auth__email_signup", category: "Auth" },
+  { name: "auth__logout", category: "Auth" },
+  { name: "onboarding__dob", category: "Onboarding" },
+  { name: "onboarding__terms", category: "Onboarding" },
+  { name: "onboarding__groups", category: "Onboarding" },
+  { name: "onboarding__interests", category: "Onboarding" },
+  { name: "onboarding__education", category: "Onboarding" },
+  { name: "onboarding__location", category: "Onboarding" },
+  { name: "onboarding__pursuit", category: "Onboarding" },
+  { name: "onboarding__complete", category: "Onboarding" },
+  { name: "home__main", category: "Home" },
+  { name: "career__hub", category: "Career" },
+  { name: "career__explore", category: "Career" },
+  { name: "career__search", category: "Career" },
+  { name: "career__detail", category: "Career" },
+  { name: "career__compare", category: "Career" },
+  { name: "career__assessment", category: "Career" },
+  { name: "career__quiz", category: "Career" },
+  { name: "career__results", category: "Career" },
+  { name: "community_feed__home", category: "Community Feed" },
+  { name: "community_feed__post_detail", category: "Community Feed" },
+  { name: "community_feed__create_post", category: "Community Feed" },
+  { name: "community_feed__edit_post", category: "Community Feed" },
+  { name: "community_feed__group", category: "Community Feed" },
+  { name: "community_feed__profile", category: "Community Feed" },
+  { name: "community_groups__groups_list", category: "Community Groups" },
+  { name: "community_groups__group_detail", category: "Community Groups" },
+  { name: "community_groups__group_members", category: "Community Groups" },
+  { name: "community_groups__group_select", category: "Community Groups" },
+  { name: "jobs__list", category: "Jobs" },
+  { name: "jobs__detail", category: "Jobs" },
+  { name: "scholarships__landing", category: "Scholarships" },
+  { name: "scholarships__list", category: "Scholarships" },
+  { name: "scholarships__detail", category: "Scholarships" },
+  { name: "learn__courses_list", category: "Learn" },
+  { name: "applications__main", category: "Applications" },
+  { name: "events__main", category: "Events" },
+  { name: "saved__main", category: "Saved" },
+  { name: "search__main", category: "Search" },
+  { name: "profile__main", category: "Profile" },
+  { name: "profile__bio", category: "Profile" },
+  { name: "profile__education", category: "Profile" },
+  { name: "profile__experience", category: "Profile" },
+  { name: "profile__skills", category: "Profile" },
+  { name: "profile__interests", category: "Profile" },
+  { name: "profile__accomplishments", category: "Profile" },
+  { name: "profile__activities", category: "Profile" },
+  { name: "profile__birth_date", category: "Profile" },
+  { name: "profile__status", category: "Profile" },
+  { name: "profile__private_view", category: "Profile" },
+  { name: "profile__other_user", category: "Profile" },
+  { name: "profile__followers_list", category: "Profile" },
+  { name: "notifications__main", category: "Notifications" },
+  { name: "user_settings__main", category: "Settings" },
+  { name: "user_settings__name", category: "Settings" },
+  { name: "user_settings__email", category: "Settings" },
+  { name: "user_settings__phone", category: "Settings" },
+  { name: "user_settings__security", category: "Settings" },
+  { name: "user_settings__privacy", category: "Settings" },
+  { name: "user_settings__blocked_users", category: "Settings" },
+  { name: "user_settings__avatar", category: "Settings" },
+  { name: "user_settings__help", category: "Settings" },
+  { name: "user_settings__delete", category: "Settings" },
+  { name: "navigation__tab_bar", category: "Navigation" },
+  { name: "navigation__sidebar", category: "Navigation" },
+  { name: "navigation__header", category: "Navigation" },
+  { name: "partner__avid", category: "Partner" },
+  { name: "resume__builder", category: "Resume" },
+  { name: "system__error", category: "System" },
+  { name: "system__modal", category: "System" },
+  { name: "system__webview", category: "System" },
+  { name: "system__external", category: "System" }
 ];
 
 const EVENTS = [
@@ -856,51 +904,43 @@ function init() {
   if (screenFrameSel) {
     screenFrameSel.innerHTML = '<option value="">— Select screen —</option>';
     
-    // Separate custom screens from regular screens
-    const customScreens = [];
-    const regularScreens = [];
-    
-    SCREENS.forEach(s => {
-      // Validate that s is a string
-      if (typeof s !== 'string' || !s) return;
-      
-      // Check if it's a custom screen (either in customScreensList or doesn't have "__")
-      if (customScreensList.includes(s) || !s.includes("__")) {
-        customScreens.push(s);
-      } else {
-        regularScreens.push(s);
-      }
-    });
-    
-    // Add custom screens group first (at the top)
-    if (customScreens.length > 0) {
-      const customOg = document.createElement("optgroup");
-      customOg.label = "✨ Custom Screens";
-      customScreens.sort().forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s;
-        opt.textContent = s;
-        customOg.appendChild(opt);
-      });
-      screenFrameSel.appendChild(customOg);
-    }
-    
-    // Group regular screens by feature
+    // Group screens by category
     const grouped = {};
-    regularScreens.forEach(s => {
-      const [feature] = s.split("__");
-      if (!grouped[feature]) grouped[feature] = [];
-      grouped[feature].push(s);
+    
+    SCREENS.forEach(screen => {
+      // Handle both object format (new) and string format (old/fallback)
+      let screenName, category;
+      
+      if (typeof screen === 'object' && screen.name) {
+        screenName = screen.name;
+        category = screen.category || "Other";
+      } else if (typeof screen === 'string') {
+        // Fallback for old string format
+        screenName = screen;
+        category = "Other";
+      } else {
+        return; // Skip invalid entries
+      }
+      
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push(screenName);
     });
     
-    // Add regular screen groups (sorted alphabetically)
-    Object.keys(grouped).sort().forEach(feature => {
+    // Sort categories: Custom first, then alphabetically
+    const sortedCategories = Object.keys(grouped).sort((a, b) => {
+      if (a === "Custom") return -1;
+      if (b === "Custom") return 1;
+      return a.localeCompare(b);
+    });
+    
+    // Add optgroups for each category
+    sortedCategories.forEach(category => {
       const og = document.createElement("optgroup");
-      og.label = feature.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      grouped[feature].forEach(s => {
+      og.label = category === "Custom" ? "✨ Custom Screens" : category;
+      grouped[category].sort().forEach(screenName => {
         const opt = document.createElement("option");
-        opt.value = s;
-        opt.textContent = s;
+        opt.value = screenName;
+        opt.textContent = screenName;
         og.appendChild(opt);
       });
       screenFrameSel.appendChild(og);
@@ -1771,9 +1811,24 @@ async function loadTaxonomyFromAPI() {
     
     // Merge with hardcoded data
     if (data.screens && data.screens.length > 0) {
-      // Replace SCREENS with fetched data (filter out invalid entries)
+      // Replace SCREENS with fetched data (now as objects with name and category)
       SCREENS.length = 0;
-      const validScreens = data.screens.filter(s => typeof s === 'string' && s.trim());
+      const validScreens = data.screens.filter(s => {
+        // Handle both object format { name, category } and old string format
+        if (typeof s === 'object' && s.name) {
+          return s.name.trim();
+        } else if (typeof s === 'string') {
+          return s.trim();
+        }
+        return false;
+      }).map(s => {
+        // Normalize to object format
+        if (typeof s === 'object' && s.name) {
+          return s;
+        } else {
+          return { name: s, category: "Other" };
+        }
+      });
       SCREENS.push(...validScreens);
     }
     
@@ -2050,7 +2105,12 @@ async function saveCustomScreen() {
   }
   
   // Check if already exists
-  if (SCREENS.includes(name)) {
+  const screenExists = SCREENS.some(s => {
+    const screenName = typeof s === 'object' ? s.name : s;
+    return screenName === name;
+  });
+  
+  if (screenExists) {
     showToast("Screen already exists", true);
     return;
   }
@@ -2073,8 +2133,8 @@ async function saveCustomScreen() {
     const result = await response.json();
     if (!result.success) throw new Error(result.error || "Failed to save");
     
-    // Add to local data
-    SCREENS.push(name);
+    // Add to local data as an object with Custom category
+    SCREENS.push({ name: name, category: "Custom", isCustom: true });
     customScreensList.push(name); // Track as custom screen
     init(); // Re-populate dropdowns
     
@@ -2090,17 +2150,6 @@ async function saveCustomScreen() {
     // Update taxonomy status counts
     updateTaxonomyStatus();
     updateCustomEntriesList();
-    
-    // Wait a moment for the sheet to update, then try to reload full taxonomy
-    // This ensures the newly added custom screen is included in the reload
-    setTimeout(async () => {
-      try {
-        await loadTaxonomyFromAPI();
-      } catch (reloadErr) {
-        console.warn("Failed to reload taxonomy after adding custom screen:", reloadErr);
-        // Ignore - we already have the custom screen locally
-      }
-    }, 1000);
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);
@@ -2174,17 +2223,6 @@ async function saveCustomEvent() {
     // Update taxonomy status counts
     updateTaxonomyStatus();
     updateCustomEntriesList();
-    
-    // Wait a moment for the sheet to update, then try to reload full taxonomy
-    // This ensures the newly added custom event is included in the reload
-    setTimeout(async () => {
-      try {
-        await loadTaxonomyFromAPI();
-      } catch (reloadErr) {
-        console.warn("Failed to reload taxonomy after adding custom event:", reloadErr);
-        // Ignore - we already have the custom event locally
-      }
-    }, 1000);
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);

@@ -74,10 +74,15 @@ function doPost(e) {
 function getTaxonomy() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Read Screens tab
+  // Read Screens tab (columns: screen_name, category)
   const screensSheet = ss.getSheetByName(SCREENS_TAB);
   const screensData = screensSheet ? screensSheet.getDataRange().getValues() : [];
-  const screens = screensData.slice(1).map(row => row[0]).filter(s => s);
+  const screens = screensData.slice(1)
+    .filter(row => row[0]) // Has screen name
+    .map(row => ({
+      name: row[0],
+      category: row[1] || "Other"
+    }));
   
   // Read Events tab (columns: event, category, description, props)
   const eventsSheet = ss.getSheetByName(EVENTS_TAB);
@@ -105,7 +110,11 @@ function getTaxonomy() {
   
   customData.slice(1).forEach(row => {
     if (row[0] === "screen" && row[1]) {
-      customScreens.push(row[1]);
+      customScreens.push({
+        name: row[1],
+        category: "Custom",
+        isCustom: true
+      });
     } else if (row[0] === "event" && row[1]) {
       customEvents.push({
         event: row[1],
@@ -121,7 +130,7 @@ function getTaxonomy() {
     screens: [...screens, ...customScreens],
     events: [...events, ...customEvents],
     propertyTypes: propertyTypes,
-    customScreens: customScreens,
+    customScreens: customScreens.map(s => s.name),
     customEvents: customEvents
   };
   
