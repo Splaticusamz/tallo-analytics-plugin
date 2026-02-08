@@ -19,9 +19,22 @@ function doGet(e) {
     return getTaxonomy();
   }
   
+  // Default response with API info
   return ContentService.createTextOutput(JSON.stringify({
-    error: "Invalid action. Use ?action=getTaxonomy"
-  })).setMimeType(ContentService.MimeType.JSON);
+    name: "Tallo Analytics Plugin API",
+    version: "2.0.0",
+    status: "ready",
+    endpoints: {
+      getTaxonomy: "GET ?action=getTaxonomy - Returns all dropdown data",
+      addCustom: "POST {action: 'addCustom', type: 'screen'|'event', ...}",
+      deleteCustom: "POST {action: 'deleteCustom', type: 'screen'|'event', name: '...'}",
+      logChange: "POST {action: 'logChange', ...}",
+      syncTags: "POST {action: 'syncTags', tags: [...]}"
+    },
+    testUrl: e.parameter.action === undefined 
+      ? "Add ?action=getTaxonomy to this URL to test"
+      : "Invalid action: " + action
+  }, null, 2)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
