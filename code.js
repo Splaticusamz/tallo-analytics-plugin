@@ -298,6 +298,49 @@ figma.ui.onmessage = (msg) => {
     figma.ui.postMessage({ type: "screen-frames-results", results });
   }
 
+  if (msg.type === "clear-screen-frames") {
+    // Clear screen assignments for specific node IDs (orphan cleanup)
+    const nodeIds = msg.nodeIds || [];
+    let cleared = 0;
+    
+    async function clearNodes() {
+      for (const id of nodeIds) {
+        const node = await figma.getNodeByIdAsync(id);
+        if (node) {
+          node.setPluginData(SCREEN_FRAME_KEY, "");
+          cleared++;
+        }
+      }
+      figma.ui.postMessage({ type: "screen-frames-cleared", count: cleared });
+      if (cleared > 0) {
+        figma.notify(`🗑️ Cleared ${cleared} orphaned screen assignment${cleared > 1 ? 's' : ''}`);
+      }
+    }
+    clearNodes();
+  }
+
+  if (msg.type === "clear-all-screen-frames") {
+    // Walk entire page and clear ALL screen assignments
+    let cleared = 0;
+    function walkClear(node) {
+      const screenName = node.getPluginData(SCREEN_FRAME_KEY);
+      if (screenName) {
+        node.setPluginData(SCREEN_FRAME_KEY, "");
+        cleared++;
+      }
+      if ("children" in node) {
+        for (const child of node.children) {
+          walkClear(child);
+        }
+      }
+    }
+    walkClear(figma.currentPage);
+    figma.ui.postMessage({ type: "screen-frames-cleared", count: cleared });
+    if (cleared > 0) {
+      figma.notify(`🗑️ Cleared all ${cleared} screen assignment${cleared > 1 ? 's' : ''}`);
+    }
+  }
+
   if (msg.type === "copy-tag") {
     figma.clientStorage.setAsync("copiedTag", msg.data).then(() => {
       // Success - UI already shows toast

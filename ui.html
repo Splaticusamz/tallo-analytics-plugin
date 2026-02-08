@@ -589,7 +589,10 @@
   </div>
   
   <div style="margin-bottom:12px;">
-    <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="width:100%;">🔍 Scan Page for Screens</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="flex:1;">🔍 Scan Page for Screens</button>
+      <button class="btn btn-sm" id="clear-all-screens-btn" style="flex:none;background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger);cursor:pointer;">🗑️ Clear All</button>
+    </div>
   </div>
   
   <div id="screens-list"></div>
@@ -1125,6 +1128,12 @@ window.onmessage = async (event) => {
     renderScreenFrames(msg.results);
   }
 
+  if (msg.type === "screen-frames-cleared") {
+    // Re-scan after clearing
+    showToast(`Cleared ${msg.count} screen assignment${msg.count !== 1 ? 's' : ''}`);
+    parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+  }
+
   if (msg.type === "tag-pasted") {
     // Load the pasted data into the form
     const pastedData = msg.data;
@@ -1526,6 +1535,11 @@ document.getElementById("scan-screens-btn").addEventListener("click", () => {
   setTimeout(() => hideLoading(), 3000);
 });
 
+// Clear all screen frame assignments
+document.getElementById("clear-all-screens-btn").addEventListener("click", () => {
+  parent.postMessage({ pluginMessage: { type: "clear-all-screen-frames" } }, "*");
+});
+
 // Queued for deletion - Export JSON and Sync to Sheet buttons removed (auto-sync now handles syncing)
 // 
 // document.getElementById("export-btn").addEventListener("click", () => {
@@ -1571,7 +1585,37 @@ document.getElementById("clear-screen-frame-btn").addEventListener("click", () =
 });
 
 // Render screen frames list
+// Cleanup orphaned screen frame assignments after taxonomy refresh
+// Asks code.js to scan all screen frames, then removes any not in current SCREENS
+let pendingOrphanCleanup = false;
+
+function cleanupOrphanedScreenFrames() {
+  if (SCREENS.length === 0) {
+    // If sheet returned no screens, clear ALL assignments
+    parent.postMessage({ pluginMessage: { type: "clear-all-screen-frames" } }, "*");
+    return;
+  }
+  // Flag that next screen-frames-results should trigger orphan check
+  pendingOrphanCleanup = true;
+  parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
+}
+
 function renderScreenFrames(results) {
+  // Check for orphans if cleanup was requested
+  if (pendingOrphanCleanup) {
+    pendingOrphanCleanup = false;
+    const validNames = new Set(SCREENS.map(s => s.name));
+    const orphanIds = results
+      .filter(r => !validNames.has(r.screenName))
+      .map(r => r.id);
+    
+    if (orphanIds.length > 0) {
+      parent.postMessage({ pluginMessage: { type: "clear-screen-frames", nodeIds: orphanIds } }, "*");
+      showToast(`Removing ${orphanIds.length} orphaned screen assignment${orphanIds.length > 1 ? 's' : ''}...`);
+      return; // Will re-render after clear completes
+    }
+  }
+
   const list = document.getElementById("screens-list");
   const empty = document.getElementById("screens-empty");
   
@@ -1999,6 +2043,10 @@ async function loadTaxonomyFromAPI() {
     
     hideLoading();
     showToast("Taxonomy loaded from Google Sheets!");
+    
+    // Auto-cleanup orphaned screen frame assignments
+    // If a screen assignment references a name not in the current taxonomy, remove it
+    cleanupOrphanedScreenFrames();
     
   } catch (err) {
     hideLoading();
