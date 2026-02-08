@@ -855,14 +855,45 @@ function init() {
   const screenFrameSel = document.getElementById("screen-frame-select");
   if (screenFrameSel) {
     screenFrameSel.innerHTML = '<option value="">— Select screen —</option>';
-    const grouped = {};
+    
+    // Separate custom screens from regular screens
+    const customScreens = [];
+    const regularScreens = [];
+    
     SCREENS.forEach(s => {
-      // Validate that s is a string before splitting
+      // Validate that s is a string
       if (typeof s !== 'string' || !s) return;
+      
+      // Check if it's a custom screen (either in customScreensList or doesn't have "__")
+      if (customScreensList.includes(s) || !s.includes("__")) {
+        customScreens.push(s);
+      } else {
+        regularScreens.push(s);
+      }
+    });
+    
+    // Add custom screens group first (at the top)
+    if (customScreens.length > 0) {
+      const customOg = document.createElement("optgroup");
+      customOg.label = "✨ Custom Screens";
+      customScreens.sort().forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        customOg.appendChild(opt);
+      });
+      screenFrameSel.appendChild(customOg);
+    }
+    
+    // Group regular screens by feature
+    const grouped = {};
+    regularScreens.forEach(s => {
       const [feature] = s.split("__");
       if (!grouped[feature]) grouped[feature] = [];
       grouped[feature].push(s);
     });
+    
+    // Add regular screen groups (sorted alphabetically)
     Object.keys(grouped).sort().forEach(feature => {
       const og = document.createElement("optgroup");
       og.label = feature.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -1640,6 +1671,7 @@ function showToast(msg, isError) {
 let apiUrl = null;
 let taxonomyData = null;
 let figmaFileKey = null;
+let customScreensList = []; // Track which screens are custom
 
 // Save Figma file URL and extract fileKey
 document.getElementById("save-figma-url-btn").addEventListener("click", () => {
@@ -1731,6 +1763,11 @@ async function loadTaxonomyFromAPI() {
     if (data.error) throw new Error(data.error);
     
     taxonomyData = data;
+    
+    // Track custom screens separately
+    if (data.customScreens && Array.isArray(data.customScreens)) {
+      customScreensList = data.customScreens.filter(s => typeof s === 'string' && s.trim());
+    }
     
     // Merge with hardcoded data
     if (data.screens && data.screens.length > 0) {
@@ -2038,6 +2075,7 @@ async function saveCustomScreen() {
     
     // Add to local data
     SCREENS.push(name);
+    customScreensList.push(name); // Track as custom screen
     init(); // Re-populate dropdowns
     
     // Select the new screen in screen frame dropdown
@@ -2053,13 +2091,16 @@ async function saveCustomScreen() {
     updateTaxonomyStatus();
     updateCustomEntriesList();
     
-    // Try to reload full taxonomy (optional - don't fail if this doesn't work)
-    try {
-      await loadTaxonomyFromAPI();
-    } catch (reloadErr) {
-      console.warn("Failed to reload taxonomy after adding custom screen:", reloadErr);
-      // Ignore - we already have the custom screen locally
-    }
+    // Wait a moment for the sheet to update, then try to reload full taxonomy
+    // This ensures the newly added custom screen is included in the reload
+    setTimeout(async () => {
+      try {
+        await loadTaxonomyFromAPI();
+      } catch (reloadErr) {
+        console.warn("Failed to reload taxonomy after adding custom screen:", reloadErr);
+        // Ignore - we already have the custom screen locally
+      }
+    }, 1000);
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);
@@ -2134,13 +2175,16 @@ async function saveCustomEvent() {
     updateTaxonomyStatus();
     updateCustomEntriesList();
     
-    // Try to reload full taxonomy (optional - don't fail if this doesn't work)
-    try {
-      await loadTaxonomyFromAPI();
-    } catch (reloadErr) {
-      console.warn("Failed to reload taxonomy after adding custom event:", reloadErr);
-      // Ignore - we already have the custom event locally
-    }
+    // Wait a moment for the sheet to update, then try to reload full taxonomy
+    // This ensures the newly added custom event is included in the reload
+    setTimeout(async () => {
+      try {
+        await loadTaxonomyFromAPI();
+      } catch (reloadErr) {
+        console.warn("Failed to reload taxonomy after adding custom event:", reloadErr);
+        // Ignore - we already have the custom event locally
+      }
+    }, 1000);
     
   } catch (err) {
     showToast("Failed to save: " + err.message, true);
