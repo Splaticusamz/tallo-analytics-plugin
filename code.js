@@ -177,7 +177,7 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "select-node") {
-    figma.currentPage.findOneAsync((n) => n.id === msg.nodeId).then((node) => {
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
       if (node) {
         figma.currentPage.selection = [node];
         figma.viewport.scrollAndZoomIntoView([node]);
