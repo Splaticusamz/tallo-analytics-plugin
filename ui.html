@@ -56,14 +56,10 @@
     padding: 10px 4px;
     text-align: center;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    font-size: 18px;
     color: var(--text-muted);
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
-    white-space: nowrap;
   }
   .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
   .tab.active {
@@ -358,14 +354,19 @@
 
 <!-- ═══ Tabs ═══ -->
 <div class="tabs">
-  <div class="tab active" data-tab="tag">🏷️ Tag</div>
-  <div class="tab" data-tab="code">📋 Code</div>
-  <div class="tab" data-tab="audit">📊 Audit</div>
-  <div class="tab" data-tab="settings">⚙️ Settings</div>
+  <div class="tab active" data-tab="tag" title="Tag">🏷️</div>
+  <div class="tab" data-tab="code" title="Code">📋</div>
+  <div class="tab" data-tab="audit" title="Audit">📊</div>
+  <div class="tab" data-tab="screens" title="Screens">🖼️</div>
+  <div class="tab" data-tab="settings" title="Settings">⚙️</div>
 </div>
 
 <!-- ═══ TAG TAB ═══ -->
 <div id="tab-tag" class="tab-content active">
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+    🏷️ Tag Component
+  </div>
+  
   <!-- No selection state -->
   <div id="empty-state" class="empty-state">
     <div class="icon">🎯</div>
@@ -481,6 +482,10 @@
 
 <!-- ═══ CODE TAB ═══ -->
 <div id="tab-code" class="tab-content">
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+    📋 Code Snippets
+  </div>
+  
   <div id="code-empty" class="empty-state">
     <div class="icon">📋</div>
     <h3>No tag on this component</h3>
@@ -517,13 +522,16 @@
 
 <!-- ═══ AUDIT TAB ═══ -->
 <div id="tab-audit" class="tab-content">
-  <div style="display:flex;gap:8px;margin-bottom:12px;">
-    <button class="btn btn-secondary btn-sm" id="scan-btn" style="flex:1;">🔍 Scan Tags</button>
-    <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="flex:1;">🖼️ Screens</button>
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+    📊 Tagged Components
   </div>
+  
   <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-secondary btn-sm" id="scan-btn" style="flex:1;">🔍 Scan Page</button>
     <button class="btn btn-secondary btn-sm" id="export-btn" style="flex:1;">📥 Export JSON</button>
-    <button class="btn btn-primary btn-sm" id="sync-sheet-btn" style="flex:1;">☁️ Sync to Sheet</button>
+  </div>
+  <div style="margin-bottom:12px;">
+    <button class="btn btn-primary btn-sm" id="sync-sheet-btn" style="width:100%;">☁️ Sync to Sheet</button>
   </div>
   <div class="audit-count" id="audit-count" style="display:none;">
     <div class="number" id="audit-number">0</div>
@@ -532,21 +540,35 @@
   <div id="audit-list"></div>
   <div id="audit-empty" class="empty-state">
     <div class="icon">📊</div>
-    <h3>Click "Scan Tags"</h3>
+    <h3>Click "Scan Page"</h3>
     <p>Find all components on this page that have analytics tags.</p>
   </div>
+</div>
+
+<!-- ═══ SCREENS TAB ═══ -->
+<div id="tab-screens" class="tab-content">
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+    🖼️ Screen Frames
+  </div>
   
-  <!-- Screen Frames View -->
-  <div id="screens-list" style="display:none;"></div>
-  <div id="screens-empty" class="empty-state" style="display:none;">
+  <div style="margin-bottom:12px;">
+    <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="width:100%;">🔍 Scan Page for Screens</button>
+  </div>
+  
+  <div id="screens-list"></div>
+  <div id="screens-empty" class="empty-state">
     <div class="icon">🖼️</div>
-    <h3>No screen frames found</h3>
-    <p>Select a frame and use "Set Screen" to mark it as a screen.</p>
+    <h3>Click "Scan Page"</h3>
+    <p>Find all frames marked as screens on this page.</p>
   </div>
 </div>
 
 <!-- ═══ SETTINGS TAB ═══ -->
 <div id="tab-settings" class="tab-content">
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+    ⚙️ Settings
+  </div>
+  
   <!-- API Configuration -->
   <div style="margin-bottom:16px;">
     <div class="status-bar" style="margin-bottom:8px;">
@@ -1384,17 +1406,11 @@ document.getElementById("clear-btn").addEventListener("click", () => {
 
 // Scan tags
 document.getElementById("scan-btn").addEventListener("click", () => {
-  document.getElementById("audit-list").style.display = "block";
-  document.getElementById("screens-list").style.display = "none";
-  document.getElementById("screens-empty").style.display = "none";
   parent.postMessage({ pluginMessage: { type: "scan-page" } }, "*");
 });
 
 // Scan screen frames
 document.getElementById("scan-screens-btn").addEventListener("click", () => {
-  document.getElementById("audit-list").style.display = "none";
-  document.getElementById("audit-empty").style.display = "none";
-  document.getElementById("audit-count").style.display = "none";
   parent.postMessage({ pluginMessage: { type: "scan-screen-frames" } }, "*");
 });
 
