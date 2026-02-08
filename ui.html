@@ -602,9 +602,60 @@
 
 <!-- ═══ SETTINGS TAB ═══ -->
 <div id="tab-settings" class="tab-content">
-  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
-    ⚙️ Settings
+  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+    <span>⚙️ Settings</span>
+    <button id="admin-toggle-btn" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:all 0.2s;" title="Toggle admin mode">🔒</button>
   </div>
+  
+  <!-- Non-admin default view -->
+  <div id="settings-default-view">
+    <div id="settings-configured-view" style="display:none;">
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:40px;margin-bottom:12px;">✅</div>
+        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Connected to Google Sheets</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">This file is pre-configured. You're all set!</p>
+      </div>
+      
+      <!-- Taxonomy Status (visible to everyone) -->
+      <div style="margin-bottom:16px;">
+        <div class="status-bar" style="margin-bottom:8px;">
+          <div class="status-text"><strong>📊 Taxonomy Overview</strong></div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--text-muted);">Screens:</span>
+            <span style="font-size:11px;font-weight:600;" id="taxonomy-screens-count-default">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--text-muted);">Events:</span>
+            <span style="font-size:11px;font-weight:600;" id="taxonomy-events-count-default">0</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:8px;font-style:italic;" id="taxonomy-source-default">
+            Using hardcoded data (fallback)
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align:center;padding:12px 0;">
+        <button id="admin-unlock-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:8px 16px;transition:color 0.2s;">🔓 Admin</button>
+      </div>
+    </div>
+    
+    <div id="settings-unconfigured-view" style="display:none;">
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Not Configured Yet</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">This file hasn't been configured yet. Ask your admin to set it up.</p>
+      </div>
+      
+      <div style="text-align:center;padding:12px 0;">
+        <button id="admin-unlock-btn-unconfigured" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:8px 16px;transition:color 0.2s;">🔓 Admin</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Admin view (hidden by default) -->
+  <div id="settings-admin-view" style="display:none;">
   
   <!-- File URL Configuration -->
   <div style="margin-bottom:16px;">
@@ -699,6 +750,8 @@
       </div>
     </div>
   </div>
+  
+  </div><!-- /settings-admin-view -->
 </div>
 
 <!-- ═══ Custom Entry Modal ═══ -->
@@ -1323,6 +1376,7 @@ window.onmessage = async (event) => {
       await loadTaxonomyFromAPI();
     }
     updateTaxonomyStatus();
+    updateSettingsView();
   }
 
   if (msg.type === "figma-filekey-loaded") {
@@ -1952,6 +2006,8 @@ function hideLoading() {
 
 let apiUrl = null;
 let apiToken = null;
+let isAdminMode = false;
+const ADMIN_PASSWORD = "tallo2024";
 
 // Issue 5: Track pending changes to batch with sync calls
 let pendingChanges = [];
@@ -2276,6 +2332,75 @@ async function deleteCustomEntry(type, name) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN MODE
+// ═══════════════════════════════════════════════════════════════════════
+
+function promptAdminPassword() {
+  const password = prompt("Enter admin password:");
+  if (password === ADMIN_PASSWORD) {
+    isAdminMode = true;
+    updateSettingsView();
+    showToast("🔓 Admin mode unlocked");
+  } else if (password !== null) {
+    showToast("Incorrect password", true);
+  }
+}
+
+function updateSettingsView() {
+  const defaultView = document.getElementById("settings-default-view");
+  const adminView = document.getElementById("settings-admin-view");
+  const toggleBtn = document.getElementById("admin-toggle-btn");
+  const configuredView = document.getElementById("settings-configured-view");
+  const unconfiguredView = document.getElementById("settings-unconfigured-view");
+  
+  if (isAdminMode) {
+    defaultView.style.display = "none";
+    adminView.style.display = "block";
+    toggleBtn.textContent = "🔓";
+    toggleBtn.style.color = "var(--accent)";
+    toggleBtn.style.borderColor = "var(--accent)";
+    toggleBtn.title = "Admin mode active";
+  } else {
+    defaultView.style.display = "block";
+    adminView.style.display = "none";
+    toggleBtn.textContent = "🔒";
+    toggleBtn.style.color = "var(--text-muted)";
+    toggleBtn.style.borderColor = "var(--border)";
+    toggleBtn.title = "Toggle admin mode";
+    
+    // Show configured or unconfigured view
+    const isConfigured = apiUrl && apiToken;
+    configuredView.style.display = isConfigured ? "block" : "none";
+    unconfiguredView.style.display = isConfigured ? "none" : "block";
+    
+    // Update default view taxonomy counts
+    document.getElementById("taxonomy-screens-count-default").textContent = SCREENS.length;
+    document.getElementById("taxonomy-events-count-default").textContent = EVENTS.length;
+    document.getElementById("taxonomy-source-default").textContent = 
+      document.getElementById("taxonomy-source").textContent;
+  }
+}
+
+// Admin toggle button (lock icon in header)
+document.getElementById("admin-toggle-btn").addEventListener("click", () => {
+  if (isAdminMode) {
+    isAdminMode = false;
+    updateSettingsView();
+    showToast("🔒 Admin mode locked");
+  } else {
+    promptAdminPassword();
+  }
+});
+
+// Admin unlock buttons (at bottom of default views)
+document.getElementById("admin-unlock-btn").addEventListener("click", () => {
+  promptAdminPassword();
+});
+document.getElementById("admin-unlock-btn-unconfigured").addEventListener("click", () => {
+  promptAdminPassword();
+});
+
 // Setup guide link
 document.getElementById("setup-guide-link").addEventListener("click", (e) => {
   e.preventDefault();
@@ -2533,6 +2658,7 @@ init();
 loadAPIUrlFromStorage();
 loadFileKeyFromStorage();
 updateTaxonomyStatus();
+updateSettingsView();
 
 // Issue 10: Initialize sync status
 updateSyncStatus("", "Not synced");

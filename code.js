@@ -215,39 +215,31 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "save-api-url") {
-    // Save both URL and token
-    Promise.all([
-      figma.clientStorage.setAsync("apiUrl", msg.url),
-      figma.clientStorage.setAsync("apiToken", msg.token)
-    ]).then(() => {
-      figma.ui.postMessage({ type: "api-url-saved" });
-    });
+    // Save both URL and token to sharedPluginData (shared with all team members)
+    figma.root.setSharedPluginData("talloAnalytics", "apiUrl", msg.url || "");
+    figma.root.setSharedPluginData("talloAnalytics", "apiToken", msg.token || "");
+    figma.ui.postMessage({ type: "api-url-saved" });
   }
 
   if (msg.type === "get-api-url") {
-    // Get both URL and token
-    Promise.all([
-      figma.clientStorage.getAsync("apiUrl"),
-      figma.clientStorage.getAsync("apiToken")
-    ]).then(([url, token]) => {
-      figma.ui.postMessage({ 
-        type: "api-url-loaded", 
-        url: url || null,
-        token: token || null
-      });
+    // Get both URL and token from sharedPluginData (shared across team)
+    const url = figma.root.getSharedPluginData("talloAnalytics", "apiUrl");
+    const token = figma.root.getSharedPluginData("talloAnalytics", "apiToken");
+    figma.ui.postMessage({ 
+      type: "api-url-loaded", 
+      url: url || null,
+      token: token || null
     });
   }
 
   if (msg.type === "save-figma-filekey") {
-    figma.clientStorage.setAsync("figmaFileKey", msg.fileKey).then(() => {
-      figma.notify("✅ File key saved");
-    });
+    figma.root.setSharedPluginData("talloAnalytics", "figmaFileKey", msg.fileKey || "");
+    figma.notify("✅ File key saved");
   }
 
   if (msg.type === "get-figma-filekey") {
-    figma.clientStorage.getAsync("figmaFileKey").then((fileKey) => {
-      figma.ui.postMessage({ type: "figma-filekey-loaded", fileKey: fileKey || null });
-    });
+    const fileKey = figma.root.getSharedPluginData("talloAnalytics", "figmaFileKey");
+    figma.ui.postMessage({ type: "figma-filekey-loaded", fileKey: fileKey || null });
   }
 
   if (msg.type === "set-screen-frame") {
@@ -365,20 +357,19 @@ figma.ui.onmessage = (msg) => {
     }
     walkExport(figma.currentPage);
     
-    // Get stored fileKey from clientStorage (since figma.fileKey is unavailable in plugin context)
-    figma.clientStorage.getAsync("figmaFileKey").then((storedFileKey) => {
-      if (!storedFileKey && !isAutoSync) {
-        figma.notify("⚠️ Please configure your Figma file URL in Settings to enable deep links", { timeout: 4000 });
-      }
-      
-      figma.ui.postMessage({ 
-        type: "sync-data", 
-        tags: results,
-        screenFrames: screenFrames,
-        fileName: figma.root.name,
-        fileKey: storedFileKey || "",
-        isAutoSync: isAutoSync
-      });
+    // Get stored fileKey from sharedPluginData (shared across team)
+    const storedFileKey = figma.root.getSharedPluginData("talloAnalytics", "figmaFileKey");
+    if (!storedFileKey && !isAutoSync) {
+      figma.notify("⚠️ Please configure your Figma file URL in Settings to enable deep links", { timeout: 4000 });
+    }
+    
+    figma.ui.postMessage({ 
+      type: "sync-data", 
+      tags: results,
+      screenFrames: screenFrames,
+      fileName: figma.root.name,
+      fileKey: storedFileKey || "",
+      isAutoSync: isAutoSync
     });
   }
 
