@@ -2215,7 +2215,10 @@ async function loadFileKeyFromStorage() {
 
 // Fetch taxonomy from API
 async function loadTaxonomyFromAPI() {
-  if (!apiUrl || !apiToken) return;
+  if (!apiUrl || !apiToken) {
+    showToast("⚠️ API not configured — go to Settings → Admin to set up", true);
+    return;
+  }
   
   showLoading("Loading taxonomy from Google Sheets...");
   
@@ -2819,7 +2822,10 @@ updateSettingsView();
 // Ensure taxonomy loads after settings are retrieved (fallback timer)
 setTimeout(async () => {
   if (apiUrl && apiToken && SCREENS.length === 0 && EVENTS.length === 0) {
+    showToast("Auto-loading taxonomy...");
     await loadTaxonomyFromAPI();
+  } else if (!apiUrl || !apiToken) {
+    showToast("⚠️ No API configured — set up in Settings (Admin)", true);
   }
 }, 1500);
 
