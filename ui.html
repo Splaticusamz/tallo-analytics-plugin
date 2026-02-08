@@ -1282,8 +1282,10 @@ function updateScreensTabForSelection(node) {
   const assignmentDiv = document.getElementById("screen-frame-assignment-main");
   const insideNotice = document.getElementById("screen-frame-inside-notice");
   
-  // Check if this node is INSIDE an existing screen frame
-  if (currentScreenFrame) {
+  // Check if this node is INSIDE an existing screen frame (but not the screen frame itself)
+  const isInsideScreenFrame = currentScreenFrame && currentScreenFrame.id !== node.id;
+  
+  if (isInsideScreenFrame) {
     // Node is inside a screen frame — show notice, hide assignment controls
     insideNotice.style.display = "block";
     assignmentDiv.style.display = "none";
