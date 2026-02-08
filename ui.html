@@ -1018,7 +1018,7 @@ function showSuggestedProps(eventName) {
     container.style.display = "none";
     return;
   }
-  const validProps = ev.props.filter(p => p && p.trim() && !/^[-_]+$/.test(p.trim()));
+  const validProps = ev.props.filter(p => p && p.trim() && !/^[-_—–]+$/.test(p.trim()));
   if (validProps.length === 0) {
     container.style.display = "none";
     return;
