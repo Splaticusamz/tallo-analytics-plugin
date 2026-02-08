@@ -97,6 +97,11 @@
     background: var(--accent);
     flex-shrink: 0;
   }
+  
+  /* Issue 10: Sync status colors */
+  .status-dot.sync-success { background: #4ade80; } /* Green */
+  .status-dot.sync-progress { background: #facc15; } /* Yellow */
+  .status-dot.sync-error { background: #f87171; } /* Red */
   .status-dot.empty { background: var(--text-muted); }
   .status-dot.tagged { background: var(--accent); }
   .status-text { font-size: 11px; color: var(--text-muted); flex: 1; }
@@ -636,6 +641,14 @@
       </div>
     </div>
     
+    <div class="field">
+      <label>API Token</label>
+      <input type="text" id="api-token-input" placeholder="Enter your API token" />
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+        This token must match the API_TOKEN constant in your Apps Script deployment for security.
+      </div>
+    </div>
+    
     <div class="btn-row">
       <button class="btn btn-primary" id="save-api-url-btn">💾 Save & Load Taxonomy</button>
       <button class="btn btn-secondary btn-sm" id="refresh-taxonomy-btn" style="flex:none;">🔄 Refresh</button>
@@ -719,8 +732,9 @@
 // TAXONOMY DATA (extracted from the Tallo spreadsheet)
 // ═══════════════════════════════════════════════════════════════════════
 
-// Screens are now objects with { name, category } structure
-// This will be populated from the Google Sheet or use this as fallback
+// FALLBACK DATA: This hardcoded data is only used when the Google Sheet API fails
+// The Google Sheet is the source of truth - this should match the 73 screens from the sheet
+// Removed: learn__courses_list, search__main (not in the Google Sheet)
 const SCREENS = [
   { name: "auth__splash", category: "Auth" },
   { name: "auth__sign_in", category: "Auth" },
@@ -759,11 +773,9 @@ const SCREENS = [
   { name: "scholarships__landing", category: "Scholarships" },
   { name: "scholarships__list", category: "Scholarships" },
   { name: "scholarships__detail", category: "Scholarships" },
-  { name: "learn__courses_list", category: "Learn" },
   { name: "applications__main", category: "Applications" },
   { name: "events__main", category: "Events" },
   { name: "saved__main", category: "Saved" },
-  { name: "search__main", category: "Search" },
   { name: "profile__main", category: "Profile" },
   { name: "profile__bio", category: "Profile" },
   { name: "profile__education", category: "Profile" },
@@ -1165,19 +1177,18 @@ function updateCodeTab() {
 function bindCopyBtn(id, textFn) {
   const btn = document.getElementById(id);
   if (!btn) return;
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", async () => {
     const text = textFn();
-    // Figma plugin copy approach — post to parent
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    btn.textContent = "COPIED ✓";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.textContent = "COPY"; btn.classList.remove("copied"); }, 1500);
-    showToast("Copied to clipboard!");
+    try {
+      await copyToClipboard(text);
+      btn.textContent = "COPIED ✓";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "COPY"; btn.classList.remove("copied"); }, 1500);
+      showToast("Copied to clipboard!");
+    } catch (err) {
+      console.error("Copy failed:", err);
+      showToast("Failed to copy to clipboard", true);
+    }
   });
 }
 
@@ -1232,7 +1243,7 @@ window.onmessage = async (event) => {
 
   if (msg.type === "export-results") {
     hideLoading();
-    downloadJSON(msg.results);
+    await downloadJSON(msg.results);
   }
 
   if (msg.type === "screen-frames-results") {
@@ -1286,20 +1297,29 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "log-change") {
-    await logChange(
-      msg.action,
-      msg.nodeId,
-      msg.nodeName,
-      "tag",
-      msg.oldValue,
-      msg.newValue
-    );
+    // Issue 5: Batch changes instead of making separate API calls
+    // Add to pending changes array that will be included in the next sync
+    pendingChanges.push({
+      fileName: "Figma File",
+      nodeId: msg.nodeId,
+      nodeName: msg.nodeName,
+      action: msg.action,
+      field: "tag",
+      oldValue: msg.oldValue,
+      newValue: msg.newValue
+    });
   }
 
   if (msg.type === "api-url-loaded") {
     apiUrl = msg.url;
+    apiToken = msg.token;
     if (apiUrl) {
       document.getElementById("api-url-input").value = apiUrl;
+    }
+    if (apiToken) {
+      document.getElementById("api-token-input").value = apiToken;
+    }
+    if (apiUrl && apiToken) {
       await loadTaxonomyFromAPI();
     }
     updateTaxonomyStatus();
@@ -1479,19 +1499,19 @@ function renderAuditResults(results) {
   });
 }
 
-function downloadJSON(results) {
+async function downloadJSON(results) {
   if (results.length === 0) {
     showToast("No tagged components found.", true);
     return;
   }
   const json = JSON.stringify(results, null, 2);
-  const ta = document.createElement("textarea");
-  ta.value = json;
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand("copy");
-  document.body.removeChild(ta);
-  showToast(`Copied ${results.length} tags as JSON!`);
+  try {
+    await copyToClipboard(json);
+    showToast(`Copied ${results.length} tags as JSON!`);
+  } catch (err) {
+    console.error("Copy failed:", err);
+    showToast("Failed to copy JSON to clipboard", true);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1518,6 +1538,17 @@ document.getElementById("event-select").addEventListener("change", (e) => {
   const ev = EVENTS.find(ev => ev.event === e.target.value);
   showEventDescription(ev);
   showSuggestedProps(e.target.value);
+
+  // Issue 9: Auto-set category filter to match event's category
+  if (ev && ev.cat) {
+    const categoryFilter = document.getElementById("category-filter");
+    if (categoryFilter) {
+      categoryFilter.value = ev.cat;
+      // Trigger the filter to update the visible events
+      const changeEvent = new Event('change', { bubbles: true });
+      categoryFilter.dispatchEvent(changeEvent);
+    }
+  }
 
   // Auto-add required props if empty
   if (ev && ev.props.length > 0 && customProps.length === 0) {
@@ -1729,6 +1760,8 @@ document.getElementById("paste-tag-btn").addEventListener("click", () => {
 // VERSION CONTROL — Change History & Sync
 // ═══════════════════════════════════════════════════════════════════════
 
+// Issue 5: This function kept for backward compatibility but no longer used
+// Changes are now batched into the syncTags call for better efficiency
 async function logChange(changeAction, nodeId, nodeName, field, oldValue, newValue) {
   if (!apiUrl) return; // Silently skip if API not configured
   
@@ -1737,6 +1770,7 @@ async function logChange(changeAction, nodeId, nodeName, field, oldValue, newVal
       method: "POST",
       body: JSON.stringify({
         action: "logChange",
+        token: apiToken,
         fileName: "Figma File",
         nodeId: nodeId,
         nodeName: nodeName,
@@ -1757,28 +1791,41 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
   if (!apiUrl) {
     if (!silent) {
       showToast("Please configure API URL in Settings first", true);
+      updateSyncStatus("error", "API URL not configured");
     }
     return;
   }
+  
+  // Issue 10: Update sync status indicator
+  updateSyncStatus("progress", "Syncing...");
   
   if (!silent) {
     showLoading("Syncing to Google Sheets...");
   }
   
   try {
+    // Issue 5: Include pending changes in sync call
+    const changesToSend = [...pendingChanges]; // Copy the array
+    pendingChanges.length = 0; // Clear pending changes
+    
     const response = await fetch(apiUrl, {
       method: "POST",
       body: JSON.stringify({
         action: "syncTags",
+        token: apiToken,
         fileName: fileName || "Figma File",
         fileKey: fileKey || "",
         tags: tags,
-        screenFrames: screenFrames || []
+        screenFrames: screenFrames || [],
+        changes: changesToSend // Include batched changes
       })
     });
     
     const result = await response.json();
     if (!result.success) throw new Error(result.error || "Failed to sync");
+    
+    // Issue 10: Update status on success
+    updateSyncStatus("success", "Synced");
     
     if (!silent) {
       hideLoading();
@@ -1791,8 +1838,11 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
     if (!silent) {
       hideLoading();
       showToast("Failed to sync: " + err.message, true);
+      updateSyncStatus("error", "Sync failed");
     } else {
       console.error("Auto-sync failed:", err);
+      // Issue 10: Retry mechanism for auto-sync failures
+      retrySyncAfterDelay();
     }
   }
 }
@@ -1800,6 +1850,76 @@ async function syncTagsToSheet(tags, fileName, fileKey, screenFrames, silent = f
 // ═══════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════
+
+// Issue 8: Modern clipboard API with fallback to deprecated execCommand
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch (err) {
+    console.warn("Clipboard API failed, falling back to execCommand:", err);
+  }
+  
+  // Fallback to deprecated execCommand for older browsers or insecure contexts
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+// Issue 10: Sync status indicator functions
+function updateSyncStatus(status, message) {
+  const statusDot = document.getElementById("status-dot");
+  const statusText = document.getElementById("status-text");
+  
+  if (!statusDot || !statusText) return; // Elements might not exist yet
+  
+  // Clear existing status classes
+  statusDot.classList.remove("sync-success", "sync-progress", "sync-error");
+  
+  switch (status) {
+    case "success":
+      statusDot.classList.add("sync-success");
+      statusText.textContent = message || "Synced";
+      syncRetryCount = 0; // Reset retry count on success
+      break;
+    case "progress":
+      statusDot.classList.add("sync-progress");
+      statusText.textContent = message || "Syncing...";
+      break;
+    case "error":
+      statusDot.classList.add("sync-error");
+      statusText.textContent = message || "Sync failed";
+      break;
+    default:
+      statusText.textContent = message || "";
+  }
+}
+
+function retrySyncAfterDelay() {
+  if (syncRetryCount >= MAX_SYNC_RETRIES) {
+    updateSyncStatus("error", "Sync failed — max retries exceeded");
+    return;
+  }
+  
+  syncRetryCount++;
+  updateSyncStatus("error", `Sync failed — retrying in 5s (${syncRetryCount}/${MAX_SYNC_RETRIES})`);
+  
+  if (syncRetryTimeout) {
+    clearTimeout(syncRetryTimeout);
+  }
+  
+  syncRetryTimeout = setTimeout(async () => {
+    updateSyncStatus("progress", "Retrying sync...");
+    
+    // Trigger auto-sync retry
+    parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
+  }, 5000);
+}
 
 function escHtml(str) {
   if (!str) return "";
@@ -1831,6 +1951,15 @@ function hideLoading() {
 // ═══════════════════════════════════════════════════════════════════════
 
 let apiUrl = null;
+let apiToken = null;
+
+// Issue 5: Track pending changes to batch with sync calls
+let pendingChanges = [];
+
+// Issue 10: Sync status tracking and retry mechanism
+let syncRetryCount = 0;
+const MAX_SYNC_RETRIES = 3;
+let syncRetryTimeout = null;
 let taxonomyData = null;
 let figmaFileKey = null;
 let customScreensList = []; // Track which screens are custom
@@ -1867,11 +1996,18 @@ document.getElementById("save-figma-url-btn").addEventListener("click", () => {
   showToast("File key saved!");
 });
 
-// Save API URL to plugin storage
+// Save API URL and token to plugin storage
 document.getElementById("save-api-url-btn").addEventListener("click", async () => {
   const url = document.getElementById("api-url-input").value.trim();
+  const token = document.getElementById("api-token-input").value.trim();
+  
   if (!url) {
     showToast("Please enter an API URL", true);
+    return;
+  }
+  
+  if (!token) {
+    showToast("Please enter an API token", true);
     return;
   }
   
@@ -1882,8 +2018,9 @@ document.getElementById("save-api-url-btn").addEventListener("click", async () =
   }
   
   apiUrl = url;
-  parent.postMessage({ pluginMessage: { type: "save-api-url", url } }, "*");
-  showToast("Saving API URL...");
+  apiToken = token;
+  parent.postMessage({ pluginMessage: { type: "save-api-url", url, token } }, "*");
+  showToast("Saving API URL and token...");
   
   // Try to load taxonomy
   await loadTaxonomyFromAPI();
@@ -1910,7 +2047,7 @@ async function loadFileKeyFromStorage() {
 
 // Fetch taxonomy from API
 async function loadTaxonomyFromAPI() {
-  if (!apiUrl) return;
+  if (!apiUrl || !apiToken) return;
   
   showLoading("Loading taxonomy from Google Sheets...");
   
@@ -1921,7 +2058,7 @@ async function loadTaxonomyFromAPI() {
   statusEl.textContent = "⏳ Loading taxonomy from Google Sheets...";
   
   try {
-    const response = await fetch(apiUrl + "?action=getTaxonomy");
+    const response = await fetch(apiUrl + "?action=getTaxonomy&token=" + encodeURIComponent(apiToken));
     if (!response.ok) throw new Error("Failed to fetch: " + response.status);
     
     const data = await response.json();
@@ -2120,6 +2257,7 @@ async function deleteCustomEntry(type, name) {
       method: "POST",
       body: JSON.stringify({
         action: "deleteCustom",
+        token: apiToken,
         type: type,
         name: name
       })
@@ -2239,6 +2377,13 @@ async function saveCustomScreen() {
     return;
   }
   
+  // Issue 7: Validate screen_name format (feature__area)
+  const screenNamePattern = /^[a-z][a-z0-9_]*__[a-z][a-z0-9_]*$/;
+  if (!screenNamePattern.test(name)) {
+    showToast("Screen name must follow format: feature__area (lowercase, numbers, underscores)", true);
+    return;
+  }
+  
   // Check if already exists
   const screenExists = SCREENS.some(s => {
     const screenName = typeof s === 'object' ? s.name : s;
@@ -2262,6 +2407,7 @@ async function saveCustomScreen() {
       method: "POST",
       body: JSON.stringify({
         action: "addCustom",
+        token: apiToken,
         type: "screen",
         name: name
       })
@@ -2326,6 +2472,7 @@ async function saveCustomEvent() {
       method: "POST",
       body: JSON.stringify({
         action: "addCustom",
+        token: apiToken,
         type: "event",
         name: name,
         category: category,
@@ -2386,6 +2533,9 @@ init();
 loadAPIUrlFromStorage();
 loadFileKeyFromStorage();
 updateTaxonomyStatus();
+
+// Issue 10: Initialize sync status
+updateSyncStatus("", "Not synced");
 </script>
 </body>
 </html>

@@ -215,14 +215,26 @@ figma.ui.onmessage = (msg) => {
   }
 
   if (msg.type === "save-api-url") {
-    figma.clientStorage.setAsync("apiUrl", msg.url).then(() => {
+    // Save both URL and token
+    Promise.all([
+      figma.clientStorage.setAsync("apiUrl", msg.url),
+      figma.clientStorage.setAsync("apiToken", msg.token)
+    ]).then(() => {
       figma.ui.postMessage({ type: "api-url-saved" });
     });
   }
 
   if (msg.type === "get-api-url") {
-    figma.clientStorage.getAsync("apiUrl").then((url) => {
-      figma.ui.postMessage({ type: "api-url-loaded", url: url || null });
+    // Get both URL and token
+    Promise.all([
+      figma.clientStorage.getAsync("apiUrl"),
+      figma.clientStorage.getAsync("apiToken")
+    ]).then(([url, token]) => {
+      figma.ui.postMessage({ 
+        type: "api-url-loaded", 
+        url: url || null,
+        token: token || null
+      });
     });
   }
 

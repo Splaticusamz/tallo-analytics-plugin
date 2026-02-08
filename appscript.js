@@ -10,9 +10,37 @@ const PROPERTIES_TAB = "Properties";
 const CUSTOM_TAB = "Custom";
 const HISTORY_TAB = "History";
 
+// API Authentication Token - Change this to a secure random token
+const API_TOKEN = "tallo_analytics_plugin_secure_token_2024_xyz789";
+
+// ─── Helper Functions ────────────────────────────────────────────────────────
+
+// Issue 6: Auto-create sheets with headers if they don't exist
+function getOrCreateSheet(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers && headers.length > 0) {
+      sheet.appendRow(headers);
+    }
+  }
+  
+  return sheet;
+}
+
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
 function doGet(e) {
+  // Check for API token
+  const token = e.parameter.token;
+  if (token !== API_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({
+      error: "Unauthorized: Invalid or missing API token"
+    })).setMimeType(ContentService.MimeType.JSON).setResponseCode(403);
+  }
+  
   const action = e.parameter.action;
   
   if (action === "getTaxonomy") {
@@ -25,14 +53,14 @@ function doGet(e) {
     version: "2.0.0",
     status: "ready",
     endpoints: {
-      getTaxonomy: "GET ?action=getTaxonomy - Returns all dropdown data",
-      addCustom: "POST {action: 'addCustom', type: 'screen'|'event', ...}",
-      deleteCustom: "POST {action: 'deleteCustom', type: 'screen'|'event', name: '...'}",
-      logChange: "POST {action: 'logChange', ...}",
-      syncTags: "POST {action: 'syncTags', tags: [...]}"
+      getTaxonomy: "GET ?action=getTaxonomy&token=YOUR_TOKEN - Returns all dropdown data",
+      addCustom: "POST {action: 'addCustom', token: 'YOUR_TOKEN', type: 'screen'|'event', ...}",
+      deleteCustom: "POST {action: 'deleteCustom', token: 'YOUR_TOKEN', type: 'screen'|'event', name: '...'}",
+      logChange: "POST {action: 'logChange', token: 'YOUR_TOKEN', ...}",
+      syncTags: "POST {action: 'syncTags', token: 'YOUR_TOKEN', tags: [...]}"
     },
     testUrl: e.parameter.action === undefined 
-      ? "Add ?action=getTaxonomy to this URL to test"
+      ? "Add ?action=getTaxonomy&token=YOUR_TOKEN to this URL to test"
       : "Invalid action: " + action
   }, null, 2)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -40,6 +68,15 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+    
+    // Check for API token
+    const token = data.token;
+    if (token !== API_TOKEN) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: "Unauthorized: Invalid or missing API token"
+      })).setMimeType(ContentService.MimeType.JSON).setResponseCode(403);
+    }
+    
     const action = data.action;
     
     if (action === "addCustom") {
@@ -63,6 +100,9 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (err) {
+    // Issue 4: Add error logging in doPost
+    Logger.log(err);
+    Logger.log(err.stack);
     return ContentService.createTextOutput(JSON.stringify({
       error: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
@@ -74,9 +114,9 @@ function doPost(e) {
 function getTaxonomy() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Read Screens tab (columns: screen_name, category)
-  const screensSheet = ss.getSheetByName(SCREENS_TAB);
-  const screensData = screensSheet ? screensSheet.getDataRange().getValues() : [];
+  // Read Screens tab (columns: screen_name, category) - auto-create if missing
+  const screensSheet = getOrCreateSheet(SCREENS_TAB, ["screen_name", "category"]);
+  const screensData = screensSheet.getDataRange().getValues();
   const screens = screensData.slice(1)
     .filter(row => row[0] && String(row[0]).trim()) // Has screen name and it's not empty
     .map(row => ({
@@ -84,9 +124,9 @@ function getTaxonomy() {
       category: row[1] ? String(row[1]).trim() : "Other"
     }));
   
-  // Read Events tab (columns: event, category, description, props)
-  const eventsSheet = ss.getSheetByName(EVENTS_TAB);
-  const eventsData = eventsSheet ? eventsSheet.getDataRange().getValues() : [];
+  // Read Events tab (columns: event, category, description, props) - auto-create if missing
+  const eventsSheet = getOrCreateSheet(EVENTS_TAB, ["event", "category", "description", "props"]);
+  const eventsData = eventsSheet.getDataRange().getValues();
   const events = eventsData.slice(1).map(row => ({
     event: row[0],
     cat: row[1],
@@ -94,17 +134,17 @@ function getTaxonomy() {
     props: row[3] && String(row[3]).trim() ? String(row[3]).split(",").map(p => p.trim()) : []
   })).filter(e => e.event);
   
-  // Read Properties tab (columns: property_name, type)
-  const propsSheet = ss.getSheetByName(PROPERTIES_TAB);
-  const propsData = propsSheet ? propsSheet.getDataRange().getValues() : [];
+  // Read Properties tab (columns: property_name, type) - auto-create if missing
+  const propsSheet = getOrCreateSheet(PROPERTIES_TAB, ["property_name", "type"]);
+  const propsData = propsSheet.getDataRange().getValues();
   const propertyTypes = {};
   propsData.slice(1).forEach(row => {
     if (row[0]) propertyTypes[row[0]] = row[1] || "string";
   });
   
-  // Read Custom tab (columns: type, name, category, description, props)
-  const customSheet = ss.getSheetByName(CUSTOM_TAB);
-  const customData = customSheet ? customSheet.getDataRange().getValues() : [];
+  // Read Custom tab (columns: type, name, category, description, props) - auto-create if missing
+  const customSheet = getOrCreateSheet(CUSTOM_TAB, ["type", "name", "category", "description", "props", "created_at"]);
+  const customData = customSheet.getDataRange().getValues();
   const customScreens = [];
   const customEvents = [];
   
@@ -141,14 +181,8 @@ function getTaxonomy() {
 // ─── Add Custom Entry ────────────────────────────────────────────────────────
 
 function addCustomEntry(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const customSheet = ss.getSheetByName(CUSTOM_TAB);
-  
-  if (!customSheet) {
-    return ContentService.createTextOutput(JSON.stringify({
-      error: "Custom tab not found"
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  // Auto-create Custom tab if missing
+  const customSheet = getOrCreateSheet(CUSTOM_TAB, ["type", "name", "category", "description", "props", "created_at"]);
   
   // Check if entry already exists
   const existingData = customSheet.getDataRange().getValues();
@@ -182,14 +216,8 @@ function addCustomEntry(data) {
 // ─── Delete Custom Entry ─────────────────────────────────────────────────────
 
 function deleteCustomEntry(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const customSheet = ss.getSheetByName(CUSTOM_TAB);
-  
-  if (!customSheet) {
-    return ContentService.createTextOutput(JSON.stringify({
-      error: "Custom tab not found"
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  // Auto-create Custom tab if missing (though this is unlikely for delete)
+  const customSheet = getOrCreateSheet(CUSTOM_TAB, ["type", "name", "category", "description", "props", "created_at"]);
   
   const allData = customSheet.getDataRange().getValues();
   
@@ -212,14 +240,8 @@ function deleteCustomEntry(data) {
 // ─── Log Change ──────────────────────────────────────────────────────────────
 
 function logChange(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const historySheet = ss.getSheetByName(HISTORY_TAB);
-  
-  if (!historySheet) {
-    return ContentService.createTextOutput(JSON.stringify({
-      error: "History tab not found"
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  // Auto-create History tab if missing
+  const historySheet = getOrCreateSheet(HISTORY_TAB, ["Timestamp", "File Name", "Node ID", "Node Name", "Action", "Field", "Old Value", "New Value"]);
   
   // Append: Timestamp | File Name | Node ID | Node Name | Action | Field | Old Value | New Value
   historySheet.appendRow([
@@ -249,45 +271,52 @@ function syncTags(data) {
   Logger.log("Received tags count: " + (data.tags ? data.tags.length : 0));
   Logger.log("Received screenFrames count: " + (data.screenFrames ? data.screenFrames.length : 0));
   
-  // ─── Sync Tags Tab ───────────────────────────────────────────────────────────
-  let tagsSheet = ss.getSheetByName("Tags");
-  if (!tagsSheet) {
-    tagsSheet = ss.insertSheet("Tags");
-    tagsSheet.appendRow([
-      "Synced At",
-      "File Name",
-      "Figma Link",
-      "Node ID",
-      "Node Name",
-      "Node Type",
-      "Event",
-      "Screen Name",
-      "Description",
-      "Properties",
-      "Tagged At"
-    ]);
+  // Issue 5: Handle optional changes array for history logging
+  const changes = data.changes || [];
+  
+  // ─── Sync Tags Tab (Issue 3: Implement upsert logic) ─────────────────────────
+  const tagsSheet = getOrCreateSheet("Tags", [
+    "Synced At",
+    "File Name", 
+    "Figma Link",
+    "Node ID",
+    "Node Name",
+    "Node Type",
+    "Event",
+    "Screen Name",
+    "Description", 
+    "Properties",
+    "Tagged At"
+  ]);
+  
+  // Get existing data to implement upsert logic using node_id as unique key
+  const existingData = tagsSheet.getDataRange().getValues();
+  const existingRowMap = new Map(); // node_id -> row number
+  
+  for (let i = 1; i < existingData.length; i++) { // Skip header row
+    const nodeId = existingData[i][3]; // Node ID column
+    if (nodeId) {
+      existingRowMap.set(nodeId, i + 1); // +1 because sheet rows are 1-indexed
+    }
   }
   
-  // Clear existing data (keep header)
-  if (tagsSheet.getLastRow() > 1) {
-    tagsSheet.deleteRows(2, tagsSheet.getLastRow() - 1);
-  }
-  
-  // Append all tags
   const tags = data.tags || [];
-  let rowIndex = 2; // Start from row 2 (after header)
+  const currentNodeIds = new Set();
   
+  // Process each tag - update if exists, insert if new
   tags.forEach(tag => {
-    // Construct Figma deep link (using new /design/ format)
     const nodeId = tag.node_id || "";
+    currentNodeIds.add(nodeId);
+    
+    // Construct Figma deep link
     const figmaUrl = fileKey && nodeId 
       ? `https://www.figma.com/design/${fileKey}/?node-id=${nodeId.replace(':', '-')}`
       : "";
     
-    tagsSheet.appendRow([
+    const rowData = [
       new Date().toISOString(),
       data.fileName || "Unknown",
-      "", // Placeholder for link - we'll add formula below
+      "", // Figma link will be set as formula below
       nodeId,
       tag.node_name || "",
       tag.node_type || "",
@@ -296,75 +325,169 @@ function syncTags(data) {
       tag.description || "",
       JSON.stringify(tag.properties || {}),
       tag.tagged_at || ""
-    ]);
+    ];
     
-    // Add HYPERLINK formula to make it clickable
-    if (figmaUrl) {
-      tagsSheet.getRange(rowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+    if (existingRowMap.has(nodeId)) {
+      // Update existing row
+      const rowNum = existingRowMap.get(nodeId);
+      const range = tagsSheet.getRange(rowNum, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      
+      // Update Figma link formula
+      if (figmaUrl) {
+        tagsSheet.getRange(rowNum, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+      } else {
+        tagsSheet.getRange(rowNum, 3).setValue("(File not saved to cloud)");
+      }
     } else {
-      tagsSheet.getRange(rowIndex, 3).setValue("(File not saved to cloud)");
+      // Insert new row
+      tagsSheet.appendRow(rowData);
+      const newRowNum = tagsSheet.getLastRow();
+      
+      // Set Figma link formula
+      if (figmaUrl) {
+        tagsSheet.getRange(newRowNum, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+      } else {
+        tagsSheet.getRange(newRowNum, 3).setValue("(File not saved to cloud)");
+      }
     }
-    rowIndex++;
   });
   
-  // ─── Sync Screen Assignments Tab ────────────────────────────────────────────
-  let screensSheet = ss.getSheetByName("Screen Assignments");
-  if (!screensSheet) {
-    screensSheet = ss.insertSheet("Screen Assignments");
-    screensSheet.appendRow([
-      "Synced At",
-      "File Name",
-      "Figma Link",
-      "Node ID",
-      "Frame Name",
-      "Frame Type",
-      "Screen Name",
-      "Assigned"
-    ]);
-    
-    // Format the Assigned column as checkboxes
+  // Remove rows for node_ids that are no longer present
+  const rowsToDelete = [];
+  for (const [nodeId, rowNum] of existingRowMap) {
+    if (!currentNodeIds.has(nodeId)) {
+      rowsToDelete.push(rowNum);
+    }
+  }
+  
+  // Delete rows in reverse order to avoid index shifting
+  rowsToDelete.sort((a, b) => b - a).forEach(rowNum => {
+    tagsSheet.deleteRow(rowNum);
+  });
+  
+  // ─── Sync Screen Assignments Tab (Issue 3: Implement upsert logic) ───────────
+  const screensSheet = getOrCreateSheet("Screen Assignments", [
+    "Synced At",
+    "File Name",
+    "Figma Link", 
+    "Node ID",
+    "Frame Name",
+    "Frame Type",
+    "Screen Name",
+    "Assigned"
+  ]);
+  
+  // Format the Assigned column as checkboxes if it's a new sheet
+  if (screensSheet.getLastRow() === 1) { // Only header exists
     screensSheet.getRange("H2:H1000").insertCheckboxes();
   }
   
-  // Clear existing data (keep header)
-  if (screensSheet.getLastRow() > 1) {
-    screensSheet.deleteRows(2, screensSheet.getLastRow() - 1);
+  // Get existing screen data for upsert
+  const existingScreenData = screensSheet.getDataRange().getValues();
+  const existingScreenRowMap = new Map(); // node_id -> row number
+  
+  for (let i = 1; i < existingScreenData.length; i++) { // Skip header row
+    const nodeId = existingScreenData[i][3]; // Node ID column
+    if (nodeId) {
+      existingScreenRowMap.set(nodeId, i + 1);
+    }
   }
   
-  // Append all screen frames
   const screenFrames = data.screenFrames || [];
-  let screenRowIndex = 2; // Start from row 2 (after header)
+  const currentScreenNodeIds = new Set();
   
+  // Process each screen frame - update if exists, insert if new
   screenFrames.forEach(screen => {
-    // Construct Figma deep link (using new /design/ format)
     const nodeId = screen.node_id || "";
+    currentScreenNodeIds.add(nodeId);
+    
+    // Construct Figma deep link
     const figmaUrl = fileKey && nodeId 
       ? `https://www.figma.com/design/${fileKey}/?node-id=${nodeId.replace(':', '-')}`
       : "";
     
-    screensSheet.appendRow([
+    const rowData = [
       new Date().toISOString(),
       data.fileName || "Unknown",
-      "", // Placeholder for link - we'll add formula below
+      "", // Figma link will be set as formula below
       nodeId,
       screen.node_name || "",
       screen.node_type || "",
       screen.screen_name || "",
-      true // Assigned checkbox (true because these are assigned frames)
+      true // Assigned checkbox
+    ];
+    
+    if (existingScreenRowMap.has(nodeId)) {
+      // Update existing row
+      const rowNum = existingScreenRowMap.get(nodeId);
+      const range = screensSheet.getRange(rowNum, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      
+      // Update Figma link formula
+      if (figmaUrl) {
+        screensSheet.getRange(rowNum, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+      } else {
+        screensSheet.getRange(rowNum, 3).setValue("(File not saved to cloud)");
+      }
+    } else {
+      // Insert new row
+      screensSheet.appendRow(rowData);
+      const newRowNum = screensSheet.getLastRow();
+      
+      // Set Figma link formula
+      if (figmaUrl) {
+        screensSheet.getRange(newRowNum, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
+      } else {
+        screensSheet.getRange(newRowNum, 3).setValue("(File not saved to cloud)");
+      }
+    }
+  });
+  
+  // Remove screen assignment rows for node_ids that are no longer present
+  const screenRowsToDelete = [];
+  for (const [nodeId, rowNum] of existingScreenRowMap) {
+    if (!currentScreenNodeIds.has(nodeId)) {
+      screenRowsToDelete.push(rowNum);
+    }
+  }
+  
+  // Delete rows in reverse order to avoid index shifting
+  screenRowsToDelete.sort((a, b) => b - a).forEach(rowNum => {
+    screensSheet.deleteRow(rowNum);
+  });
+  
+  // ─── Issue 5: Log changes to History tab if provided ─────────────────────────
+  if (changes.length > 0) {
+    const historySheet = getOrCreateSheet(HISTORY_TAB, [
+      "Timestamp",
+      "File Name",
+      "Node ID", 
+      "Node Name",
+      "Action",
+      "Field",
+      "Old Value",
+      "New Value"
     ]);
     
-    // Add HYPERLINK formula to make it clickable
-    if (figmaUrl) {
-      screensSheet.getRange(screenRowIndex, 3).setFormula(`=HYPERLINK("${figmaUrl}", "Open in Figma")`);
-    } else {
-      screensSheet.getRange(screenRowIndex, 3).setValue("(File not saved to cloud)");
-    }
-    screenRowIndex++;
-  });
+    changes.forEach(change => {
+      historySheet.appendRow([
+        new Date().toISOString(),
+        change.fileName || "Unknown",
+        change.nodeId || "",
+        change.nodeName || "",
+        change.action || "",
+        change.field || "",
+        change.oldValue || "",
+        change.newValue || ""
+      ]);
+    });
+  }
   
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
     count: tags.length,
-    screenCount: screenFrames.length
+    screenCount: screenFrames.length,
+    changesLogged: changes.length
   })).setMimeType(ContentService.MimeType.JSON);
 }
