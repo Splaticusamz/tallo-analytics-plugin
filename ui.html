@@ -402,6 +402,12 @@
   <div class="tab" data-tab="settings" title="Settings">⚙️</div>
 </div>
 
+<!-- Undo/Redo Bar -->
+<div id="undo-redo-bar" style="display:flex;justify-content:flex-end;gap:4px;padding:4px 12px;background:var(--bg);border-bottom:1px solid var(--border);">
+  <button id="undo-btn" disabled style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 10px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:all 0.2s;opacity:0.4;" title="Undo">↩️ Undo</button>
+  <button id="redo-btn" disabled style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 10px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:all 0.2s;opacity:0.4;" title="Redo">↪️ Redo</button>
+</div>
+
 <!-- ═══ TAG TAB ═══ -->
 <div id="tab-tag" class="tab-content active">
   <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
@@ -1538,6 +1544,16 @@ document.getElementById("save-btn").addEventListener("click", () => {
   saveBtn.disabled = true;
   
   parent.postMessage({ pluginMessage: { type: "save", data, oldData } }, "*");
+  
+  // Push to undo stack
+  pushUndo({
+    type: "save-tag",
+    nodeId: currentNode.id,
+    oldData: oldData ? JSON.parse(oldData) : null,
+    newData: data,
+    description: `Tag "${event}" on "${currentNode.name}"`
+  });
+  
   updateCodeTab();
   
   // Reset button after a moment
@@ -1549,6 +1565,16 @@ document.getElementById("save-btn").addEventListener("click", () => {
 
 // Clear
 document.getElementById("clear-btn").addEventListener("click", () => {
+  // Push to undo before clearing
+  if (currentNode && currentData) {
+    pushUndo({
+      type: "clear-tag",
+      nodeId: currentNode.id,
+      oldData: { ...currentData },
+      newData: null,
+      description: `Clear tag from "${currentNode.name}"`
+    });
+  }
   parent.postMessage({ pluginMessage: { type: "clear" } }, "*");
   currentData = null;
   updateCodeTab();
@@ -1607,6 +1633,18 @@ document.getElementById("set-screen-frame-btn").addEventListener("click", () => 
   btn.innerHTML = "⏳ Setting...";
   btn.disabled = true;
   
+  // Push to undo (oldData = current screen name if any)
+  if (currentNode) {
+    const oldScreen = document.getElementById("screen-frame-current-name").textContent || null;
+    pushUndo({
+      type: "set-screen",
+      nodeId: currentNode.id,
+      oldData: oldScreen || null,
+      newData: screenName,
+      description: `Set screen "${screenName}" on "${currentNode.name}"`
+    });
+  }
+  
   parent.postMessage({ pluginMessage: { type: "set-screen-frame", screenName } }, "*");
   
   // Reset button after a moment
@@ -1618,6 +1656,19 @@ document.getElementById("set-screen-frame-btn").addEventListener("click", () => 
 
 // Clear screen frame
 document.getElementById("clear-screen-frame-btn").addEventListener("click", () => {
+  // Push to undo
+  if (currentNode) {
+    const oldScreen = document.getElementById("screen-frame-current-name").textContent || null;
+    if (oldScreen) {
+      pushUndo({
+        type: "clear-screen",
+        nodeId: currentNode.id,
+        oldData: oldScreen,
+        newData: null,
+        description: `Clear screen from "${currentNode.name}"`
+      });
+    }
+  }
   parent.postMessage({ pluginMessage: { type: "clear-screen-frame" } }, "*");
 });
 
@@ -1903,6 +1954,88 @@ function hideLoading() {
 // ═══════════════════════════════════════════════════════════════════════
 // SETTINGS — API URL & Taxonomy Management
 // ═══════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════
+// UNDO / REDO
+// ═══════════════════════════════════════════════════════════════════════
+
+const undoStack = [];
+const redoStack = [];
+const MAX_UNDO = 50;
+
+function pushUndo(action) {
+  // action: { type, nodeId, oldData, newData, description }
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0; // Clear redo on new action
+  updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
+  const undoBtn = document.getElementById("undo-btn");
+  const redoBtn = document.getElementById("redo-btn");
+  undoBtn.disabled = undoStack.length === 0;
+  undoBtn.style.opacity = undoStack.length === 0 ? "0.4" : "1";
+  undoBtn.style.color = undoStack.length === 0 ? "var(--text-muted)" : "var(--text)";
+  undoBtn.title = undoStack.length > 0 ? `Undo: ${undoStack[undoStack.length - 1].description}` : "Nothing to undo";
+  redoBtn.disabled = redoStack.length === 0;
+  redoBtn.style.opacity = redoStack.length === 0 ? "0.4" : "1";
+  redoBtn.style.color = redoStack.length === 0 ? "var(--text-muted)" : "var(--text)";
+  redoBtn.title = redoStack.length > 0 ? `Redo: ${redoStack[redoStack.length - 1].description}` : "Nothing to redo";
+}
+
+document.getElementById("undo-btn").addEventListener("click", () => {
+  if (undoStack.length === 0) return;
+  const action = undoStack.pop();
+  redoStack.push(action);
+  applyUndoRedo(action, "undo");
+  updateUndoRedoButtons();
+});
+
+document.getElementById("redo-btn").addEventListener("click", () => {
+  if (redoStack.length === 0) return;
+  const action = redoStack.pop();
+  undoStack.push(action);
+  applyUndoRedo(action, "redo");
+  updateUndoRedoButtons();
+});
+
+function applyUndoRedo(action, direction) {
+  const data = direction === "undo" ? action.oldData : action.newData;
+
+  if (action.type === "save-tag" || action.type === "clear-tag") {
+    if (data) {
+      // Restore tag
+      parent.postMessage({ pluginMessage: { type: "restore-tag", nodeId: action.nodeId, data: data } }, "*");
+    } else {
+      // Clear tag
+      parent.postMessage({ pluginMessage: { type: "restore-clear-tag", nodeId: action.nodeId } }, "*");
+    }
+  }
+
+  if (action.type === "set-screen" || action.type === "clear-screen") {
+    if (data) {
+      parent.postMessage({ pluginMessage: { type: "restore-screen", nodeId: action.nodeId, screenName: data } }, "*");
+    } else {
+      parent.postMessage({ pluginMessage: { type: "restore-clear-screen", nodeId: action.nodeId } }, "*");
+    }
+  }
+
+  const label = direction === "undo" ? "Undid" : "Redid";
+  showToast(`${label}: ${action.description}`);
+}
+
+// Keyboard shortcut: Ctrl+Z / Ctrl+Shift+Z
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById("undo-btn").click();
+  }
+  if ((e.ctrlKey || e.metaKey) && ((e.key === "z" && e.shiftKey) || e.key === "y")) {
+    e.preventDefault();
+    document.getElementById("redo-btn").click();
+  }
+});
 
 let apiUrl = null;
 let apiToken = null;

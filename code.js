@@ -341,6 +341,48 @@ figma.ui.onmessage = (msg) => {
     }
   }
 
+  // ─── Undo/Redo restore handlers ─────────────────────────────────────
+
+  if (msg.type === "restore-tag") {
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
+      if (node) {
+        setAnalyticsData(node, msg.data);
+        figma.notify("↩️ Tag restored on \"" + node.name + "\"");
+        sendSelectionState();
+      }
+    });
+  }
+
+  if (msg.type === "restore-clear-tag") {
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
+      if (node) {
+        clearAnalyticsData(node);
+        figma.notify("↩️ Tag removed from \"" + node.name + "\"");
+        sendSelectionState();
+      }
+    });
+  }
+
+  if (msg.type === "restore-screen") {
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
+      if (node) {
+        node.setPluginData(SCREEN_FRAME_KEY, msg.screenName);
+        figma.notify("↩️ Screen restored: \"" + msg.screenName + "\"");
+        sendSelectionState();
+      }
+    });
+  }
+
+  if (msg.type === "restore-clear-screen") {
+    figma.getNodeByIdAsync(msg.nodeId).then((node) => {
+      if (node) {
+        node.setPluginData(SCREEN_FRAME_KEY, "");
+        figma.notify("↩️ Screen cleared from \"" + node.name + "\"");
+        sendSelectionState();
+      }
+    });
+  }
+
   if (msg.type === "copy-tag") {
     figma.clientStorage.setAsync("copiedTag", msg.data).then(() => {
       // Success - UI already shows toast
