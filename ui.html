@@ -383,36 +383,6 @@
 
   <!-- Tag form -->
   <div id="tag-form" style="display:none;">
-    <!-- Screen Frame Assignment (for frames only) -->
-    <div id="screen-frame-assignment" style="display:none;margin-bottom:12px;">
-      <div class="props-section" style="background:rgba(104,211,145,0.1);border-color:rgba(104,211,145,0.3);">
-        <div class="props-header">
-          <label style="margin:0;">🖼️ Screen Frame</label>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-          Mark this frame as a screen. Components inside will auto-derive their screen name.
-        </div>
-        <div id="screen-frame-current" style="display:none;padding:8px;background:rgba(104,211,145,0.15);border-radius:var(--radius-sm);margin-bottom:8px;">
-          <div style="font-size:11px;color:var(--text);">
-            <strong>Current:</strong> <span id="screen-frame-current-name" style="color:var(--cat-nav);font-family:monospace;"></span>
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:8px;">
-          <label>Screen Name</label>
-          <div style="display:flex;gap:4px;">
-            <select id="screen-frame-select" style="flex:1;">
-              <option value="">— Select screen —</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" id="add-custom-screen-btn" style="flex:none;width:32px;padding:4px;" title="Add custom screen">+</button>
-          </div>
-        </div>
-        <div style="display:flex;gap:4px;">
-          <button class="btn btn-secondary btn-sm" id="set-screen-frame-btn" style="flex:1;">Set Screen</button>
-          <button class="btn btn-danger btn-sm" id="clear-screen-frame-btn" style="flex:none;width:80px;display:none;">Clear</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Screen Frame Info (for components inside screens) -->
     <div id="screen-frame-info" style="display:none;margin-bottom:12px;">
       <div style="padding:10px;background:rgba(104,211,145,0.1);border:1px solid rgba(104,211,145,0.3);border-radius:var(--radius);">
@@ -549,6 +519,36 @@
 <div id="tab-screens" class="tab-content">
   <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">
     🖼️ Screen Frames
+  </div>
+  
+  <!-- Screen Frame Assignment -->
+  <div id="screen-frame-assignment-main" style="margin-bottom:16px;">
+    <div class="props-section" style="background:rgba(104,211,145,0.1);border-color:rgba(104,211,145,0.3);">
+      <div class="props-header">
+        <label style="margin:0;">Set Screen on Selected Frame</label>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+        Select a frame in Figma, then assign it a screen name. All components inside will auto-derive this screen name.
+      </div>
+      <div id="screen-frame-current" style="display:none;padding:8px;background:rgba(104,211,145,0.15);border-radius:var(--radius-sm);margin-bottom:8px;">
+        <div style="font-size:11px;color:var(--text);">
+          <strong>Current:</strong> <span id="screen-frame-current-name" style="color:var(--cat-nav);font-family:monospace;"></span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Screen Name</label>
+        <div style="display:flex;gap:4px;">
+          <select id="screen-frame-select" style="flex:1;">
+            <option value="">— Select screen —</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="add-custom-screen-btn" style="flex:none;width:32px;padding:4px;" title="Add custom screen">+</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-secondary btn-sm" id="set-screen-frame-btn" style="flex:1;">Set Screen</button>
+        <button class="btn btn-danger btn-sm" id="clear-screen-frame-btn" style="flex:none;width:80px;display:none;">Clear</button>
+      </div>
+    </div>
   </div>
   
   <div style="margin-bottom:12px;">
@@ -1073,6 +1073,9 @@ window.onmessage = async (event) => {
       document.getElementById("multi-state").style.display = "none";
       document.getElementById("tag-form").style.display = "";
       loadFormFromData(msg.node, msg.data, msg.screenFrame);
+      
+      // Update Screens tab if a frame is selected
+      updateScreensTabForSelection(msg.node);
     }
     updateCodeTab();
   }
@@ -1146,6 +1149,15 @@ window.onmessage = async (event) => {
     );
   }
 
+  if (msg.type === "api-url-loaded") {
+    apiUrl = msg.url;
+    if (apiUrl) {
+      document.getElementById("api-url-input").value = apiUrl;
+      await loadTaxonomyFromAPI();
+    }
+    updateTaxonomyStatus();
+  }
+
   if (msg.type === "screen-assignment") {
     const select = document.getElementById("screen-frame-select");
     const currentDiv = document.getElementById("screen-frame-current");
@@ -1163,14 +1175,14 @@ window.onmessage = async (event) => {
       clearBtn.style.display = "none";
     }
   }
+};
 
-  if (msg.type === "api-url-loaded") {
-    apiUrl = msg.url;
-    if (apiUrl) {
-      document.getElementById("api-url-input").value = apiUrl;
-      await loadTaxonomyFromAPI();
-    }
-    updateTaxonomyStatus();
+function updateScreensTabForSelection(node) {
+  const isFrame = node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET";
+  
+  if (isFrame) {
+    // Check if this frame has a screen assignment
+    parent.postMessage({ pluginMessage: { type: "get-screen-assignment", nodeId: node.id } }, "*");
   }
 };
 
@@ -1178,34 +1190,18 @@ function loadFormFromData(node, data, screenFrame) {
   const dot = document.getElementById("status-dot");
   const text = document.getElementById("status-text");
   
-  // Handle screen frame assignment UI
-  const isFrame = node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET";
-  const screenFrameAssignment = document.getElementById("screen-frame-assignment");
+  // Handle screen frame info display
   const screenFrameInfo = document.getElementById("screen-frame-info");
   const noScreenWarning = document.getElementById("no-screen-warning");
   
-  if (isFrame) {
-    // Show screen frame assignment UI for frames
-    screenFrameAssignment.style.display = "block";
-    screenFrameInfo.style.display = "none";
+  if (screenFrame) {
+    screenFrameInfo.style.display = "block";
     noScreenWarning.style.display = "none";
-    
-    // Check if this frame is already a screen by looking at data
-    parent.postMessage({ pluginMessage: { type: "get-screen-assignment", nodeId: node.id } }, "*");
-    
+    document.getElementById("current-screen-frame-name").textContent = screenFrame.screenName;
+    document.getElementById("current-screen-frame-layer").textContent = "from frame \"" + screenFrame.name + "\"";
   } else {
-    // Show screen frame info for components
-    screenFrameAssignment.style.display = "none";
-    
-    if (screenFrame) {
-      screenFrameInfo.style.display = "block";
-      noScreenWarning.style.display = "none";
-      document.getElementById("current-screen-frame-name").textContent = screenFrame.screenName;
-      document.getElementById("current-screen-frame-layer").textContent = "from frame \"" + screenFrame.name + "\"";
-    } else {
-      screenFrameInfo.style.display = "none";
-      noScreenWarning.style.display = "block";
-    }
+    screenFrameInfo.style.display = "none";
+    noScreenWarning.style.display = "block";
   }
 
   if (data) {
