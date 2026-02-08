@@ -1112,6 +1112,18 @@ window.onmessage = async (event) => {
       document.getElementById("event-select").value = pastedData.event || "";
       document.getElementById("description-input").value = pastedData.description || "";
       
+      // Load category from pasted data, or fall back to event definition
+      const catSel = document.getElementById("category-select");
+      if (pastedData.category) {
+        catSel.value = pastedData.category;
+      } else {
+        // Fallback: derive from EVENTS array if not in pasted data
+        const ev = EVENTS.find(e => e.event === pastedData.event);
+        if (ev) {
+          catSel.value = ev.cat;
+        }
+      }
+      
       // Load properties
       customProps = [];
       if (pastedData.properties) {
@@ -1124,8 +1136,6 @@ window.onmessage = async (event) => {
       // Show event description
       const ev = EVENTS.find(e => e.event === pastedData.event);
       if (ev) {
-        const catSel = document.getElementById("category-select");
-        catSel.value = ev.cat;
         showEventDescription(ev);
         showSuggestedProps(pastedData.event);
       }
@@ -1210,6 +1220,18 @@ function loadFormFromData(node, data, screenFrame) {
     document.getElementById("event-select").value = data.event || "";
     document.getElementById("description-input").value = data.description || "";
 
+    // Load category from saved data, or fall back to event definition
+    const catSel = document.getElementById("category-select");
+    if (data.category) {
+      catSel.value = data.category;
+    } else {
+      // Fallback: derive from EVENTS array if not saved (backwards compatibility)
+      const ev = EVENTS.find(e => e.event === data.event);
+      if (ev) {
+        catSel.value = ev.cat;
+      }
+    }
+
     // Load properties
     customProps = [];
     if (data.properties) {
@@ -1222,8 +1244,6 @@ function loadFormFromData(node, data, screenFrame) {
     // Show event description
     const ev = EVENTS.find(e => e.event === data.event);
     if (ev) {
-      const catSel = document.getElementById("category-select");
-      catSel.value = ev.cat;
       showEventDescription(ev);
       showSuggestedProps(data.event);
     }
@@ -1356,6 +1376,7 @@ document.getElementById("add-prop-btn").addEventListener("click", () => {
 // Save
 document.getElementById("save-btn").addEventListener("click", () => {
   const event = document.getElementById("event-select").value;
+  const category = document.getElementById("category-select").value;
   const desc = document.getElementById("description-input").value.trim();
 
   if (!event) {
@@ -1382,6 +1403,7 @@ document.getElementById("save-btn").addEventListener("click", () => {
   
   const data = {
     event,
+    category,
     screen_name: screen,
     description: desc,
     properties,
@@ -1488,6 +1510,7 @@ document.getElementById("copy-tag-btn").addEventListener("click", () => {
   // Copy everything except screen_name and tagged_at
   const tagToCopy = {
     event: currentData.event,
+    category: currentData.category,
     description: currentData.description,
     properties: currentData.properties
   };
