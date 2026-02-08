@@ -610,46 +610,27 @@
   <!-- Non-admin default view -->
   <div id="settings-default-view">
     <div id="settings-configured-view" style="display:none;">
-      <div style="text-align:center;padding:30px 20px;">
-        <div style="font-size:40px;margin-bottom:12px;">✅</div>
-        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Connected to Google Sheets</h3>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">This file is pre-configured. You're all set!</p>
+      <div style="text-align:center;padding:24px 20px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">✅</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Connected to Google Sheets</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;" id="taxonomy-summary-default">0 screens, 0 events loaded</div>
       </div>
-      
-      <!-- Taxonomy Status (visible to everyone) -->
-      <div style="margin-bottom:16px;">
-        <div class="status-bar" style="margin-bottom:8px;">
-          <div class="status-text"><strong>📊 Taxonomy Overview</strong></div>
-        </div>
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-            <span style="font-size:11px;color:var(--text-muted);">Screens:</span>
-            <span style="font-size:11px;font-weight:600;" id="taxonomy-screens-count-default">0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-            <span style="font-size:11px;color:var(--text-muted);">Events:</span>
-            <span style="font-size:11px;font-weight:600;" id="taxonomy-events-count-default">0</span>
-          </div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:8px;font-style:italic;" id="taxonomy-source-default">
-            Using hardcoded data (fallback)
-          </div>
-        </div>
+      <div style="padding:0 20px 16px;">
+        <button class="btn btn-secondary btn-sm" id="refresh-taxonomy-default-btn" style="width:100%;">🔄 Refresh Taxonomy</button>
       </div>
-      
-      <div style="text-align:center;padding:12px 0;">
-        <button id="admin-unlock-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:8px 16px;transition:color 0.2s;">🔓 Admin</button>
+      <div style="text-align:center;padding:8px 0 16px;">
+        <button id="admin-unlock-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:4px 12px;transition:color 0.2s;">🔓 Admin</button>
       </div>
     </div>
     
     <div id="settings-unconfigured-view" style="display:none;">
-      <div style="text-align:center;padding:30px 20px;">
-        <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
-        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Not Configured Yet</h3>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">This file hasn't been configured yet. Ask your admin to set it up.</p>
+      <div style="text-align:center;padding:24px 20px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">⚠️</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Not Configured</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Ask your admin to set up this file.</div>
       </div>
-      
-      <div style="text-align:center;padding:12px 0;">
-        <button id="admin-unlock-btn-unconfigured" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:8px 16px;transition:color 0.2s;">🔓 Admin</button>
+      <div style="text-align:center;padding:8px 0 16px;">
+        <button id="admin-unlock-btn-unconfigured" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:4px 12px;transition:color 0.2s;">🔓 Admin</button>
       </div>
     </div>
   </div>
@@ -2374,11 +2355,9 @@ function updateSettingsView() {
     configuredView.style.display = isConfigured ? "block" : "none";
     unconfiguredView.style.display = isConfigured ? "none" : "block";
     
-    // Update default view taxonomy counts
-    document.getElementById("taxonomy-screens-count-default").textContent = SCREENS.length;
-    document.getElementById("taxonomy-events-count-default").textContent = EVENTS.length;
-    document.getElementById("taxonomy-source-default").textContent = 
-      document.getElementById("taxonomy-source").textContent;
+    // Update summary line
+    document.getElementById("taxonomy-summary-default").textContent =
+      SCREENS.length + " screens, " + EVENTS.length + " events loaded";
   }
 }
 
@@ -2399,6 +2378,15 @@ document.getElementById("admin-unlock-btn").addEventListener("click", () => {
 });
 document.getElementById("admin-unlock-btn-unconfigured").addEventListener("click", () => {
   promptAdminPassword();
+});
+
+// Non-admin refresh taxonomy button
+document.getElementById("refresh-taxonomy-default-btn").addEventListener("click", async () => {
+  if (!apiUrl) {
+    showToast("Not configured — ask your admin", true);
+    return;
+  }
+  await loadTaxonomyFromAPI();
 });
 
 // Setup guide link
