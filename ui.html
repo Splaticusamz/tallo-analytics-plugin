@@ -396,38 +396,42 @@
             <strong>Current:</strong> <span id="screen-frame-current-name" style="color:var(--cat-nav);font-family:monospace;"></span>
           </div>
         </div>
-        <div style="display:flex;gap:4px;align-items:flex-end;">
-          <div style="flex:1;">
-            <input type="text" id="screen-frame-input" placeholder="e.g. home__main" style="font-size:11px;" />
+        <div class="field" style="margin-bottom:8px;">
+          <label>Screen Name</label>
+          <div style="display:flex;gap:4px;">
+            <select id="screen-frame-select" style="flex:1;">
+              <option value="">— Select screen —</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="add-custom-screen-btn" style="flex:none;width:32px;padding:4px;" title="Add custom screen">+</button>
           </div>
-          <button class="btn btn-secondary btn-sm" id="set-screen-frame-btn" style="flex:none;">Set Screen</button>
-          <button class="btn btn-danger btn-sm" id="clear-screen-frame-btn" style="flex:none;display:none;">Clear</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-secondary btn-sm" id="set-screen-frame-btn" style="flex:1;">Set Screen</button>
+          <button class="btn btn-danger btn-sm" id="clear-screen-frame-btn" style="flex:none;width:80px;display:none;">Clear</button>
         </div>
       </div>
     </div>
 
     <!-- Screen Frame Info (for components inside screens) -->
     <div id="screen-frame-info" style="display:none;margin-bottom:12px;">
-      <div style="padding:8px;background:rgba(104,211,145,0.1);border:1px solid rgba(104,211,145,0.3);border-radius:var(--radius);font-size:11px;">
-        <div style="color:var(--text-muted);margin-bottom:2px;">📍 Inside screen frame:</div>
-        <div style="color:var(--cat-nav);font-weight:600;font-family:monospace;" id="current-screen-frame-name"></div>
-        <div style="color:var(--text-muted);font-size:10px;margin-top:2px;" id="current-screen-frame-layer"></div>
+      <div style="padding:10px;background:rgba(104,211,145,0.1);border:1px solid rgba(104,211,145,0.3);border-radius:var(--radius);">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px;">📍 Screen Name (Auto-Derived)</div>
+        <div style="color:var(--cat-nav);font-weight:700;font-family:monospace;font-size:14px;margin-bottom:2px;" id="current-screen-frame-name"></div>
+        <div style="color:var(--text-muted);font-size:10px;" id="current-screen-frame-layer"></div>
+      </div>
+    </div>
+
+    <!-- Warning for components not in screen frame -->
+    <div id="no-screen-warning" style="display:none;margin-bottom:12px;">
+      <div style="padding:10px;background:rgba(245,101,101,0.1);border:1px solid rgba(245,101,101,0.3);border-radius:var(--radius);">
+        <div style="font-size:11px;color:var(--danger);font-weight:600;margin-bottom:4px;">⚠️ No screen assignment</div>
+        <div style="font-size:10px;color:var(--text-muted);">This component is not inside a screen frame. Select a top-level frame and use "Set Screen" to assign it.</div>
       </div>
     </div>
 
     <div class="status-bar">
       <div class="status-dot" id="status-dot"></div>
       <div class="status-text" id="status-text"></div>
-    </div>
-
-    <div class="field">
-      <label>Screen Name</label>
-      <div style="display:flex;gap:4px;">
-        <select id="screen-select" style="flex:1;">
-          <option value="">— Select screen —</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" id="add-custom-screen-btn" style="flex:none;width:32px;padding:4px;" title="Add custom screen">+</button>
-      </div>
     </div>
 
     <div class="field">
@@ -804,27 +808,28 @@ let customProps = []; // { key, type, value_hint }
 // ═══════════════════════════════════════════════════════════════════════
 
 function init() {
-  const screenSel = document.getElementById("screen-select");
-  // Clear existing options (keep the first placeholder)
-  screenSel.innerHTML = '<option value="">— Select screen —</option>';
-  // Group screens by feature
-  const grouped = {};
-  SCREENS.forEach(s => {
-    const [feature] = s.split("__");
-    if (!grouped[feature]) grouped[feature] = [];
-    grouped[feature].push(s);
-  });
-  Object.keys(grouped).sort().forEach(feature => {
-    const og = document.createElement("optgroup");
-    og.label = feature.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    grouped[feature].forEach(s => {
-      const opt = document.createElement("option");
-      opt.value = s;
-      opt.textContent = s;
-      og.appendChild(opt);
+  // Populate screen frame dropdown (for setting screens on frames)
+  const screenFrameSel = document.getElementById("screen-frame-select");
+  if (screenFrameSel) {
+    screenFrameSel.innerHTML = '<option value="">— Select screen —</option>';
+    const grouped = {};
+    SCREENS.forEach(s => {
+      const [feature] = s.split("__");
+      if (!grouped[feature]) grouped[feature] = [];
+      grouped[feature].push(s);
     });
-    screenSel.appendChild(og);
-  });
+    Object.keys(grouped).sort().forEach(feature => {
+      const og = document.createElement("optgroup");
+      og.label = feature.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      grouped[feature].forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        og.appendChild(opt);
+      });
+      screenFrameSel.appendChild(og);
+    });
+  }
 
   const catSel = document.getElementById("category-select");
   // Clear existing options (keep the first placeholder)
@@ -1120,18 +1125,18 @@ window.onmessage = async (event) => {
   }
 
   if (msg.type === "screen-assignment") {
-    const input = document.getElementById("screen-frame-input");
+    const select = document.getElementById("screen-frame-select");
     const currentDiv = document.getElementById("screen-frame-current");
     const currentName = document.getElementById("screen-frame-current-name");
     const clearBtn = document.getElementById("clear-screen-frame-btn");
     
     if (msg.screenName) {
-      input.value = msg.screenName;
+      select.value = msg.screenName;
       currentDiv.style.display = "block";
       currentName.textContent = msg.screenName;
       clearBtn.style.display = "block";
     } else {
-      input.value = "";
+      select.value = "";
       currentDiv.style.display = "none";
       clearBtn.style.display = "none";
     }
@@ -1155,12 +1160,13 @@ function loadFormFromData(node, data, screenFrame) {
   const isFrame = node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET";
   const screenFrameAssignment = document.getElementById("screen-frame-assignment");
   const screenFrameInfo = document.getElementById("screen-frame-info");
-  const screenSelect = document.getElementById("screen-select");
+  const noScreenWarning = document.getElementById("no-screen-warning");
   
   if (isFrame) {
     // Show screen frame assignment UI for frames
     screenFrameAssignment.style.display = "block";
     screenFrameInfo.style.display = "none";
+    noScreenWarning.style.display = "none";
     
     // Check if this frame is already a screen by looking at data
     parent.postMessage({ pluginMessage: { type: "get-screen-assignment", nodeId: node.id } }, "*");
@@ -1171,24 +1177,18 @@ function loadFormFromData(node, data, screenFrame) {
     
     if (screenFrame) {
       screenFrameInfo.style.display = "block";
+      noScreenWarning.style.display = "none";
       document.getElementById("current-screen-frame-name").textContent = screenFrame.screenName;
-      document.getElementById("current-screen-frame-layer").textContent = "from \"" + screenFrame.name + "\"";
-      
-      // Auto-fill screen name from frame
-      screenSelect.disabled = true;
-      screenSelect.value = screenFrame.screenName;
-      screenSelect.style.opacity = "0.6";
+      document.getElementById("current-screen-frame-layer").textContent = "from frame \"" + screenFrame.name + "\"";
     } else {
       screenFrameInfo.style.display = "none";
-      screenSelect.disabled = false;
-      screenSelect.style.opacity = "1";
+      noScreenWarning.style.display = "block";
     }
   }
 
   if (data) {
     dot.className = "status-dot tagged";
     text.innerHTML = `<strong>${escHtml(node.name)}</strong> — tagged ✓`;
-    document.getElementById("screen-select").value = data.screen_name || "";
     document.getElementById("event-select").value = data.event || "";
     document.getElementById("description-input").value = data.description || "";
 
@@ -1212,7 +1212,6 @@ function loadFormFromData(node, data, screenFrame) {
   } else {
     dot.className = "status-dot empty";
     text.innerHTML = `<strong>${escHtml(node.name)}</strong> — no tag`;
-    document.getElementById("screen-select").value = "";
     document.getElementById("category-select").value = "";
     document.getElementById("event-select").value = "";
     document.getElementById("description-input").value = "";
@@ -1338,19 +1337,21 @@ document.getElementById("add-prop-btn").addEventListener("click", () => {
 
 // Save
 document.getElementById("save-btn").addEventListener("click", () => {
-  let screen = document.getElementById("screen-select").value;
   const event = document.getElementById("event-select").value;
   const desc = document.getElementById("description-input").value.trim();
-
-  // If inside a screen frame, use the derived screen name
-  if (currentScreenFrame) {
-    screen = currentScreenFrame.screenName;
-  }
 
   if (!event) {
     showToast("Please select an event.", true);
     return;
   }
+
+  // Screen name must come from screen frame
+  if (!currentScreenFrame) {
+    showToast("Component must be inside a screen frame. Select a frame and use 'Set Screen' first.", true);
+    return;
+  }
+
+  const screen = currentScreenFrame.screenName;
 
   const properties = {};
   customProps.forEach(p => {
@@ -1415,9 +1416,9 @@ document.getElementById("sync-sheet-btn").addEventListener("click", async () => 
 
 // Set screen frame
 document.getElementById("set-screen-frame-btn").addEventListener("click", () => {
-  const screenName = document.getElementById("screen-frame-input").value.trim();
+  const screenName = document.getElementById("screen-frame-select").value.trim();
   if (!screenName) {
-    showToast("Please enter a screen name", true);
+    showToast("Please select a screen name", true);
     return;
   }
   parent.postMessage({ pluginMessage: { type: "set-screen-frame", screenName } }, "*");
@@ -1929,8 +1930,11 @@ async function saveCustomScreen() {
     SCREENS.push(name);
     init(); // Re-populate dropdowns
     
-    // Select the new screen
-    document.getElementById("screen-select").value = name;
+    // Select the new screen in screen frame dropdown
+    const screenFrameSel = document.getElementById("screen-frame-select");
+    if (screenFrameSel) {
+      screenFrameSel.value = name;
+    }
     
     showToast("Custom screen added!");
     closeCustomEntryModal();
