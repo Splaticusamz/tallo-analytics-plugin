@@ -428,6 +428,38 @@
     <p>Select a single component to tag it.</p>
   </div>
 
+  <!-- Screen Frame Selected state (when the selected node IS a screen frame) -->
+  <div id="screen-frame-state" style="display:none;">
+    <div style="text-align:center;padding:20px 16px;">
+      <div style="font-size:36px;margin-bottom:8px;">📍</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">Screen Frame</div>
+      <div style="font-family:monospace;font-size:16px;color:var(--cat-nav);font-weight:700;margin-bottom:12px;" id="screen-frame-state-name"></div>
+    </div>
+    <div style="padding:0 16px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+          <strong style="color:var(--text);">screen_view</strong> event fires automatically when this screen loads. No manual tagging needed.
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);">
+          Tag the <strong>child components</strong> inside this frame with interaction events (taps, clicks, toggles).
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:6px;">Frame Info</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:11px;color:var(--text-muted);">Layer:</span>
+          <span style="font-size:11px;font-weight:600;" id="screen-frame-state-layer"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:11px;color:var(--text-muted);">Type:</span>
+          <span style="font-size:11px;font-weight:600;" id="screen-frame-state-type"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Tag form -->
   <div id="tag-form" style="display:none;">
     <!-- Screen Frame Info (for components inside screens) -->
@@ -1109,6 +1141,7 @@ window.onmessage = async (event) => {
       currentScreenFrame = null;
       document.getElementById("empty-state").style.display = "";
       document.getElementById("multi-state").style.display = "none";
+      document.getElementById("screen-frame-state").style.display = "none";
       document.getElementById("tag-form").style.display = "none";
       // Reset screens tab
       document.getElementById("screen-frame-inside-notice").style.display = "none";
@@ -1117,10 +1150,26 @@ window.onmessage = async (event) => {
       currentNode = msg.node;
       currentData = msg.data;
       currentScreenFrame = msg.screenFrame;
+      
+      // Check if this node IS a screen frame
+      const isScreenFrame = msg.screenFrame && msg.screenFrame.id === msg.node.id;
+      
       document.getElementById("empty-state").style.display = "none";
       document.getElementById("multi-state").style.display = "none";
-      document.getElementById("tag-form").style.display = "";
-      loadFormFromData(msg.node, msg.data, msg.screenFrame);
+      
+      if (isScreenFrame) {
+        // Show screen frame info instead of tag form
+        document.getElementById("screen-frame-state").style.display = "block";
+        document.getElementById("tag-form").style.display = "none";
+        document.getElementById("screen-frame-state-name").textContent = msg.screenFrame.screenName;
+        document.getElementById("screen-frame-state-layer").textContent = msg.node.name;
+        document.getElementById("screen-frame-state-type").textContent = msg.node.type;
+      } else {
+        // Normal tag form
+        document.getElementById("screen-frame-state").style.display = "none";
+        document.getElementById("tag-form").style.display = "";
+        loadFormFromData(msg.node, msg.data, msg.screenFrame);
+      }
       
       // Update Screens tab if a frame is selected
       updateScreensTabForSelection(msg.node);
@@ -1133,6 +1182,7 @@ window.onmessage = async (event) => {
     currentData = null;
     document.getElementById("empty-state").style.display = "none";
     document.getElementById("multi-state").style.display = "";
+    document.getElementById("screen-frame-state").style.display = "none";
     document.getElementById("tag-form").style.display = "none";
     updateCodeTab();
   }
