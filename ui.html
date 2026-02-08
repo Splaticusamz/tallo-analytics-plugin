@@ -1275,11 +1275,8 @@ window.onmessage = async (event) => {
     
     autoSyncTimeout = setTimeout(async () => {
       if (!apiUrl) {
-        console.log("Auto-sync skipped: No API URL configured");
         return;
       }
-      
-      console.log("Auto-syncing to Google Sheets...");
       // Request all tags and screen frames from Figma (marked as auto-sync)
       parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
     }, 2000);
@@ -2209,6 +2206,9 @@ async function loadTaxonomyFromAPI() {
     // Auto-cleanup orphaned screen frame assignments
     // If a screen assignment references a name not in the current taxonomy, remove it
     cleanupOrphanedScreenFrames();
+    
+    // Sync current Figma state back to sheet (push tags + screen assignments)
+    parent.postMessage({ pluginMessage: { type: "sync-to-sheet", isAutoSync: true } }, "*");
     
   } catch (err) {
     hideLoading();
