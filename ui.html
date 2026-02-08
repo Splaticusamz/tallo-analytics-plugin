@@ -611,10 +611,7 @@
   </div>
   
   <div style="margin-bottom:12px;">
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="flex:1;">🔍 Scan Page for Screens</button>
-      <button class="btn btn-sm" id="clear-all-screens-btn" style="flex:none;background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger);cursor:pointer;">🗑️ Clear All</button>
-    </div>
+    <button class="btn btn-secondary btn-sm" id="scan-screens-btn" style="width:100%;">🔍 Scan Page for Screens</button>
   </div>
   
   <div id="screens-list"></div>
@@ -1596,11 +1593,6 @@ document.getElementById("scan-screens-btn").addEventListener("click", () => {
   
   // Hide loading after results come back (will be handled by message handler)
   setTimeout(() => hideLoading(), 3000);
-});
-
-// Clear all screen frame assignments
-document.getElementById("clear-all-screens-btn").addEventListener("click", () => {
-  parent.postMessage({ pluginMessage: { type: "clear-all-screen-frames" } }, "*");
 });
 
 // Queued for deletion - Export JSON and Sync to Sheet buttons removed (auto-sync now handles syncing)
